@@ -72,7 +72,7 @@ namespace jsonifier_internal {
 		JSONIFIER_ALIGN uint8_t values[sizeof(simd_type)]{};
 		std::stringstream theStream{};
 		store(value, values);
-		for (uint64_t x = 0; x < BytesPerStep; ++x) {
+		for (uint64_t x = 0; x < bytesPerStep; ++x) {
 			for (uint64_t y = 0; y < 8; ++y) {
 				theStream << std::bitset<1>{ static_cast<uint64_t>(*(values + x)) >> y };
 			}

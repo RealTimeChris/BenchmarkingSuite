@@ -47,7 +47,7 @@ namespace jsonifier_internal {
 
 			static constexpr auto memberCount = std::tuple_size_v<jsonifier::concepts::core_t<value_type>>;
 			if constexpr (memberCount > 0) {
-				static constexpr decltype(auto) frozenMap{ makeMap<value_type>() };
+				static constexpr decltype(auto) frozenMap{ makeSet<value_type>() };
 
 				bool first = true;
 				while (iter != end) {
@@ -90,9 +90,10 @@ namespace jsonifier_internal {
 						}
 
 						std::visit(
-							[&](auto&& memberPtr) {
+							[&](const auto& memberPtr) -> void {
 								using member_type = jsonifier::concepts::unwrap_t<decltype(getMember(value, memberPtr))>;
 								parse_impl<derived_type, member_type>::template impl<options>(getMember(value, memberPtr), iter, end);
+								return;
 							},
 							*memberIt);
 

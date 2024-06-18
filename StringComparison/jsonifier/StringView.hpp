@@ -224,8 +224,8 @@ namespace jsonifier {
 						}
 					}
 					return true;
-				}();
-				return lhs.size() == rhs.size() && compareValues;
+				};
+				return lhs.size() == rhs.size() && compareValues();
 			} else {
 				return rhs.size() == lhs.size() && jsonifier_internal::compare(lhs.data(), rhs.data(), rhs.size());
 			}

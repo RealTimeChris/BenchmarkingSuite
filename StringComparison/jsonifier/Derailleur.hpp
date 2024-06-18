@@ -407,8 +407,8 @@ namespace jsonifier_internal {
 		}
 	}
 
-	template<size_t I, class T> static constexpr auto keyName = [] {
-		using V = std::decay_t<T>;
+	template<size_t I, class value_type> static constexpr auto keyName = [] {
+		using V = std::decay_t<value_type>;
 		return get<0>(get<I>(jsonifier::concepts::core_v<V>));
 	}();
 

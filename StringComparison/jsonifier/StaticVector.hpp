@@ -36,14 +36,20 @@ namespace jsonifier_internal {
 		using const_pointer	  = const value_type*;
 		using size_type		  = uint64_t;
 		using const_reference = const value_type&;
-		using iterator_type	  = jsonifier_internal::iterator<value_type>;
-		using const_iterator  = jsonifier_internal::const_iterator<value_type>;
+		using iterator		  = pointer;
+		using const_iterator  = const_pointer;
 
 		template<typename value_type_newer, size_type rowsNew> friend class static_vector;
 
-		constexpr static_vector() {};
+		constexpr static_vector& operator=(static_vector&& other) = default;
+		constexpr static_vector(static_vector&& other)			  = default;
 
-		constexpr static_vector& operator=(jsonifier::vector<value_type>&& values) noexcept {
+		constexpr static_vector& operator=(const static_vector& other) = default;
+		constexpr static_vector(const static_vector& other)			   = default;
+
+		constexpr static_vector() = default;
+
+		constexpr static_vector& operator=(std::vector<value_type>&& values) noexcept {
 			if (rows < values.size()) {
 				throw std::out_of_range{ "Sorry, but there is not the correct number of rows in the vector!" };
 			}
@@ -53,11 +59,11 @@ namespace jsonifier_internal {
 			return *this;
 		}
 
-		constexpr static_vector(jsonifier::vector<value_type>&& values) noexcept {
+		constexpr static_vector(std::vector<value_type>&& values) noexcept {
 			*this = values;
 		}
 
-		constexpr static_vector& operator=(const jsonifier::vector<value_type>& values) {
+		constexpr static_vector& operator=(const std::vector<value_type>& values) {
 			if (rows < values.size()) {
 				throw std::out_of_range{ "Sorry, but there is not the correct number of rows in the vector!" };
 			}
@@ -67,7 +73,7 @@ namespace jsonifier_internal {
 			return *this;
 		}
 
-		constexpr static_vector(const jsonifier::vector<value_type>& values) {
+		constexpr static_vector(const std::vector<value_type>& values) {
 			*this = values;
 		}
 
@@ -77,22 +83,45 @@ namespace jsonifier_internal {
 			return dataVal[sizeVal - 1];
 		}
 
-		constexpr iterator_type erase(iterator_type pos) {
-			if (pos < begin() || pos >= end()) {
-				throw std::out_of_range{ "Iterator out of range" };
+		constexpr void pop_back() {
+			if (sizeVal > 0) {
+				--sizeVal;
+				std::destroy_at(&dataVal[sizeVal]);
+			} else {
+				throw std::out_of_range{ "Vector is empty, cannot pop_back!" };
 			}
-			auto position = pos.operator->() - dataVal;
-			std::copy(pos.operator->() + 1, end().operator->(), pos.operator->());
-			--sizeVal;
-			return iterator_type{ dataVal + position, dataVal + position, dataVal + sizeVal };
 		}
 
-		constexpr iterator_type begin() noexcept {
-			return iterator_type{ dataVal };
+		constexpr iterator erase(iterator pos) {
+			if (pos >= data() && pos < data() + sizeVal) {
+				std::copy(pos + 1, data() + sizeVal, pos);
+				--sizeVal;
+			}
+			return pos;
 		}
 
-		constexpr iterator_type end() noexcept {
-			return iterator_type{ dataVal + sizeVal };
+		constexpr iterator begin() noexcept {
+			return iterator{ dataVal };
+		}
+
+		constexpr iterator end() noexcept {
+			return iterator{ dataVal + sizeVal };
+		}
+
+		constexpr const_reference start() const noexcept {
+			return dataVal;
+		}
+
+		constexpr const_reference back() const noexcept {
+			return *(dataVal + sizeVal - 1);
+		}
+
+		constexpr reference start() noexcept {
+			return dataVal;
+		}
+
+		constexpr reference back() noexcept {
+			return *(dataVal + sizeVal - 1);
 		}
 
 		constexpr const_iterator begin() const noexcept {
@@ -123,6 +152,10 @@ namespace jsonifier_internal {
 			return rows;
 		}
 
+		constexpr bool empty() const {
+			return sizeVal == 0;
+		}
+
 		constexpr void resize(size_type newSize) {
 			if (rows < newSize) {
 				throw std::out_of_range{ "Sorry, but there is not the correct number of rows in this vector!" };
@@ -145,8 +178,9 @@ namespace jsonifier_internal {
 			}
 		}
 
-		JSONIFIER_ALIGN value_type dataVal[rows]{};
+		value_type dataVal[rows]{};
 		size_type sizeVal{};
 	};
+
 
 }

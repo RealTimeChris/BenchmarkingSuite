@@ -76,7 +76,7 @@
 #endif
 
 #if !defined JSONIFIER_ALIGN
-	#define JSONIFIER_ALIGN alignas(BytesPerStep)
+	#define JSONIFIER_ALIGN alignas(bytesPerStep)
 #endif
 
 #if !defined(JSONIFIER_CHECK_FOR_INSTRUCTION)
@@ -219,9 +219,9 @@ constexpr uint64_t BitsPerStep{ 128 };
 using string_parsing_type = uint16_t;
 #endif
 
-constexpr uint64_t BytesPerStep{ BitsPerStep / 8 };
-constexpr uint64_t SixtyFourBitsPerStep{ BitsPerStep / 64 };
-constexpr uint64_t StridesPerStep{ BitsPerStep / BytesPerStep };
+constexpr uint64_t bytesPerStep{ BitsPerStep / 8 };
+constexpr uint64_t sixtyFourBitsPerStep{ BitsPerStep / 64 };
+constexpr uint64_t StridesPerStep{ BitsPerStep / bytesPerStep };
 
 using string_view_ptr	= const char*;
 using structural_index	= const char*;
@@ -235,3 +235,19 @@ template<typename value_type>
 concept simd_int_128_type = std::is_same_v<simd_int_128, jsonifier::concepts::unwrap_t<value_type>>;
 template<typename value_type>
 concept simd_int_type = std::is_same_v<simd_int_t, jsonifier::concepts::unwrap_t<value_type>>;
+
+#if defined(__APPLE__) && defined(__arm64__)
+	#define PREFETCH(ptr) __builtin_prefetch(ptr, 0, 0);
+#elif defined(JSONIFIER_MSVC)
+	#include <intrin.h>
+	#define PREFETCH(ptr) _mm_prefetch(static_cast<const char*>(ptr), _MM_HINT_T0);
+#elif defined(JSONIFIER_GNUCXX) || defined(JSONIFIER_CLANG)
+	#include <xmmintrin.h>
+	#define PREFETCH(ptr) _mm_prefetch(static_cast<const char*>(ptr), _MM_HINT_T0);
+#else
+	#error "Compiler or architecture not supported for prefetching"
+#endif
+
+JSONIFIER_INLINE void prefetchInternal(const void* ptr) {
+	PREFETCH(ptr)
+}

@@ -29,33 +29,21 @@
 namespace jsonifier_internal {
 
 	template<typename value_type>
-	concept convertible_to_string_view = std::convertible_to<jsonifier::concepts::unwrap_t<value_type>, jsonifier::string_view>;
+	concept convertible_to_string_view = std::convertible_to<jsonifier::concepts::unwrap_t<value_type>, jsonifier::string_view>; 
 
 	template<uint64_t currentIndex, uint64_t maxIndex, convertible_to_string_view arg_type01, typename arg_type02, typename tuple_type, typename... arg_types>
 	constexpr auto getInterleavedTuple(const tuple_type& newTuple, const arg_type01& arg01, const arg_type02& arg02, const arg_types&... args) {
 		if constexpr (std::tuple_size_v<tuple_type> > 0) {
 			if constexpr (currentIndex < maxIndex - 2) {
-				auto newPtrArg	= arg02;
-				auto newerPair	= std::make_tuple(string_literal{ arg01 }, newPtrArg);
-				auto newerTuple = std::tuple_cat(newTuple, std::make_tuple(newerPair));
-				return getInterleavedTuple<currentIndex + 2, maxIndex>(newerTuple, args...);
+				return getInterleavedTuple<currentIndex + 2, maxIndex>(std::tuple_cat(newTuple, std::make_tuple(std::make_tuple(string_literal{ arg01 }, arg02))), args...);
 			} else {
-				auto newPtrArg	= arg02;
-				auto newerPair	= std::make_tuple(string_literal{ arg01 }, newPtrArg);
-				auto newerTuple = std::tuple_cat(newTuple, std::make_tuple(newerPair));
-				return newerTuple;
+				return std::tuple_cat(newTuple, std::make_tuple(std::make_tuple(string_literal{ arg01 }, arg02)));
 			}
 		} else {
 			if constexpr (currentIndex < maxIndex - 2) {
-				auto newPtrArg	= arg02;
-				auto newerPair	= std::make_tuple(string_literal{ arg01 }, newPtrArg);
-				auto newerTuple = std::make_tuple(newerPair);
-				return getInterleavedTuple<currentIndex + 2, maxIndex>(newerTuple, args...);
+				return getInterleavedTuple<currentIndex + 2, maxIndex>(std::make_tuple(std::make_tuple(string_literal{ arg01 }, arg02)), args...);
 			} else {
-				auto newPtrArg	= arg02;
-				auto newerPair	= std::make_tuple(string_literal{ arg01 }, newPtrArg);
-				auto newerTuple = std::make_tuple(newerPair);
-				return newerTuple;
+				return std::make_tuple(std::make_tuple(string_literal{ arg01 }, arg02));
 			}
 		}
 	}

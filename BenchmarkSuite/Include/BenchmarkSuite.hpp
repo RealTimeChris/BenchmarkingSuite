@@ -193,15 +193,7 @@ namespace bnch_swt {
 
 			++currentIterationCount;
 		}
-		if (medianAbsolutePercentageError >= 0.05) {
-			if (maxIterationCount > UINT64_MAX / 2) {
-				throw std::runtime_error("Maximum iteration count exceeded");
-			}
-			return collectMape<maxIterationCount * 2, minIterationCount>(newFunction, totalIterationCount);
-		} else {
-			totalIterationCount += currentIterationCount;
-			return { medianAbsolutePercentageError, totalIterationCount, durations[currentIterationCount - 1] };
-		}
+		return { medianAbsolutePercentageError, totalIterationCount, durations[currentIterationCount - 1] };
 	}
 
 	template<uint64_t iterationCount, typename function_type> inline benchmark_results benchmark(function_type&& function) {
@@ -367,17 +359,30 @@ namespace bnch_swt {
 	template<string_literal benchmarkSuite> struct benchmark_suite {
 		constexpr benchmark_suite() noexcept {};
 		static constexpr benchmark_suite_results_stored<benchmarkSuite> results{};
+		inline static void printResults() {
+			benchmark_suite_results newValues{ results };
+			for (auto& value: newValues.results) {
+				std::cout << "Benchmark Name: " << value.benchmarkName << ", MAPE: " << value.medianAbsolutePercentageError << ", Result Time: " << value.resultTime << std::endl;
+				//auto stringToWrite = parser.serializeJson(value);
+				//std::cout << "STRING TO WRITE: " << stringToWrite << std::endl;
+			}
+			//auto stringToWrite = parser.serializeJson(newValues);
+			//file_loader fileLoader{ filePath };
+			//fileLoader.saveFile(static_cast<std::string>(stringToWrite));
+			//std::cout << "STRING TO WRITE: " << stringToWrite << std::endl;
+			return ;
+		}
 		inline static std::string writeJsonData(const std::string& filePath) {
 			benchmark_suite_results newValues{ results };
 			for (auto& value: newValues.results) {
-				auto stringToWrite = parser.serializeJson(value);
-				std::cout << "STRING TO WRITE: " << stringToWrite << std::endl;
+				//auto stringToWrite = parser.serializeJson(value);
+				//std::cout << "STRING TO WRITE: " << stringToWrite << std::endl;
 			}
-			auto stringToWrite = parser.serializeJson(newValues);
-			file_loader fileLoader{ filePath };
-			fileLoader.saveFile(static_cast<std::string>(stringToWrite));
-			std::cout << "STRING TO WRITE: " << stringToWrite << std::endl;
-			return static_cast<std::string>(stringToWrite);
+			//auto stringToWrite = parser.serializeJson(newValues);
+			//file_loader fileLoader{ filePath };
+			//fileLoader.saveFile(static_cast<std::string>(stringToWrite));
+			//std::cout << "STRING TO WRITE: " << stringToWrite << std::endl;
+			return {};
 		}
 
 		static bool checkDoubleForValidLt(double valueToCheck, double valueToCheckAgainst) {
@@ -419,7 +424,8 @@ namespace bnch_swt {
 		template<string_literal benchmarkName, string_literal benchmarkColor, int64_t maxIterationCount, invocable_void function_type, typename... arg_types>
 		static inline auto benchmark(function_type&& function, arg_types&&... args) {
 			static constexpr int64_t warmupCount	   = maxIterationCount;
-			static constexpr int64_t minIterationCount = static_cast<int64_t>(static_cast<float>(maxIterationCount) * 0.10f);
+			static constexpr int64_t minIterationCount =
+				static_cast<int64_t>(static_cast<float>(maxIterationCount) * 0.10f) > 0 ? static_cast<int64_t>(static_cast<float>(maxIterationCount) * 0.10f) : 1;
 			using function_type_final				   = jsonifier::concepts::unwrap_t<function_type>;
 			auto functionNew						   = [=] {
 				  return function(args...);
@@ -451,7 +457,8 @@ namespace bnch_swt {
 		template<string_literal benchmarkName, string_literal benchmarkColor, int64_t maxIterationCount, invocable_not_void function_type, typename... arg_types>
 		static inline auto benchmark(function_type&& function, arg_types&&... args) {
 			static constexpr int64_t warmupCount	   = maxIterationCount;
-			static constexpr int64_t minIterationCount = static_cast<int64_t>(static_cast<float>(maxIterationCount) * 0.10f);
+			static constexpr int64_t minIterationCount =
+				static_cast<int64_t>(static_cast<float>(maxIterationCount) * 0.10f) > 0 ? static_cast<int64_t>(static_cast<float>(maxIterationCount) * 0.10f) : 1;
 			using function_type_final				   = jsonifier::concepts::unwrap_t<function_type>;
 			auto functionNew						   = [=] {
 				  return function(args...);

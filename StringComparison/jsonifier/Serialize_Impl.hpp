@@ -27,6 +27,7 @@
 #include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/Parser.hpp"
 #include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/Base.hpp"
 #include <algorithm>
+#include <assert.h>
 
 namespace jsonifier_internal {
 
@@ -50,6 +51,7 @@ namespace jsonifier_internal {
 			static constexpr auto& group = get<indexNew>(jsonifier::concepts::core_v<jsonifier::concepts::unwrap_t<value_type>>);
 
 			static constexpr jsonifier::string_view key = get<0>(group);
+			jsonifier::string_view keyNew				= key;
 			if constexpr (jsonifier::concepts::has_excluded_keys<value_type>) {
 				auto& keys = value.jsonifierExcludedKeys;
 				if (keys.find(static_cast<typename jsonifier::concepts::unwrap_t<decltype(keys)>::key_type>(key)) != keys.end()) {
@@ -64,16 +66,18 @@ namespace jsonifier_internal {
 			static constexpr auto quotedKey = joinV < chars<"\"">, key, options.optionsReal.prettify ? chars<"\": "> : chars < "\":" >> ;
 			writeCharacters<quotedKey>(buffer, index);
 
-			static constexpr auto frozenMap = makeMap<value_type>();
+			static constexpr auto frozenMap = makeSet<value_type>();
 			static constexpr auto memberIt	= frozenMap.find(key);
-			static_assert(memberIt != frozenMap.end(), "Invalid key passed to partial write");
+			using member_type = std::remove_pointer_t<decltype(memberIt)>;
+			assert(memberIt != frozenMap.end());
 			std::visit(
-				[&](auto&& memberPtr) {
+				[&](const auto& memberPtr) -> void {
 					auto& newMember	  = getMember(value, memberPtr);
 					using member_type = jsonifier::concepts::unwrap_t<decltype(newMember)>;
 					serialize_impl<options, derived_type, member_type>::impl(newMember, buffer, index);
+					return;
 				},
-				std::move(*memberIt));
+				*memberIt);
 
 
 			if constexpr (indexNew != n - 1) {

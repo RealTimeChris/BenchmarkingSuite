@@ -27,16 +27,20 @@
 #include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/StringView.hpp"
 #include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/StaticVector.hpp"
 #include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/Reflection.hpp"
+#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/Derailleur.hpp"
 #include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/Error.hpp"
 #include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/Tuple.hpp"
 #include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/Base.hpp"
 #include <algorithm>
 #include <numeric>
+#include <array>
 #include <span>
 
 namespace jsonifier_internal {
 
 	struct naive_prng final {
+		constexpr naive_prng() noexcept = default;
+
 		uint64_t x = 7185499250578500046;
 		constexpr uint64_t operator()() noexcept {
 			x ^= x >> 12;
@@ -46,57 +50,65 @@ namespace jsonifier_internal {
 		}
 	};
 
+	template<uint64_t n> constexpr uint64_t nextPowerOf2() {
+		if constexpr (n == 0) {
+			return 1;
+		}
+
+		if constexpr ((n & (n - 1)) == 0) {
+			return n;
+		}
+
+		uint64_t p = 1;
+		while (p < n) {
+			p <<= 1;
+		}
+		return p;
+	}
+
 	template<uint64_t length> struct set_simd {
-		using type =
-			std::conditional_t<(length >= 64) && (BytesPerStep >= 64), simd_int_512, std::conditional_t<(length >= 32) && (BytesPerStep >= 32), simd_int_256, simd_int_128>>;
+		using type = std::conditional_t<bytesPerStep >= 64 && length >= 64, simd_int_512, std::conditional_t<bytesPerStep >= 32 && length >= 32, simd_int_256, simd_int_128>>;
 	};
 
 	template<uint64_t length> struct set_integer {
-		using type = std::conditional_t<(length >= 64) && (BytesPerStep >= 64), uint64_t, std::conditional_t<(length >= 32) && (BytesPerStep >= 32), uint32_t, uint16_t>>;
+		using type = std::conditional_t<bytesPerStep >= 64 && length >= 64, uint64_t, std::conditional_t<bytesPerStep >= 32 && length >= 32, uint32_t, uint16_t>>;
+	};
+
+	template<uint64_t length> constexpr uint64_t setSimdWidth() {
+		return bytesPerStep >= 64 && length >= 64 ? 64 : bytesPerStep >= 32 && length >= 32 ? 32 : 16;
 	};
 
 	template<uint64_t length> using set_simd_t = set_simd<length>::type;
 
 	template<uint64_t length> using set_integer_t = set_integer<length>::type;
 
-	template<uint64_t length> constexpr uint64_t setSimdLength() {
-		return (length >= 64) && (BytesPerStep >= 64) ? 64 : (length >= 32) && (BytesPerStep >= 32) ? 32 : 16;
-	};
-
-	template<uint64_t length> struct fit_unsigned {
-		using type = std::conditional_t<length <= std::numeric_limits<uint8_t>::max(), uint8_t,
-			std::conditional_t<length <= std::numeric_limits<uint16_t>::max(), uint16_t,
-				std::conditional_t<length <= std::numeric_limits<uint32_t>::max(), uint32_t, std::conditional_t<length <= std::numeric_limits<uint64_t>::max(), uint64_t, void>>>>;
-	};
-
-	template<uint64_t length> using fit_unsigned_t = typename fit_unsigned<length>::type;
-
 	template<typename value_type> constexpr value_type abs(value_type value) {
 		return value < 0 ? -value : value;
 	}
 
-	template<uint64_t value01> constexpr bool isItCloseEnough() {
-		return abs(value01 % setSimdLength<value01>()) <= 2;
-	}
+	constexpr std::array<double, 10> scalingFactorTable{ 0.10f, 0.20f, 0.30f, 0.40f, 0.50f, 0.60f, 0.70f, 0.80f, 0.90f, 1.0f };
 
-	template<typename key_type, typename value_type, size_t N> struct simd_set : public jsonifier_internal::fnv1a_hash {
-		static constexpr uint64_t storageSize = roundUpToMultiple<setSimdLength<N>(), uint64_t>(N);
-		static constexpr uint64_t bucketSize  = ((N >= setSimdLength<N>()) ? setSimdLength<N>() : N);
+	template<typename key_type, typename value_type, size_t bucketSizeNew, size_t N> struct simd_set : public fnv1a_hash {
+		static constexpr uint64_t bucketSize  = bucketSizeNew;
+		static constexpr uint64_t storageSize = N >= bucketSize ? N : bucketSize;
 		static constexpr uint64_t numGroups	  = storageSize > bucketSize ? storageSize / bucketSize : 1;
+		uint64_t stringScalingFactorIndex{};
 		uint64_t seed{};
-		using hasher	   = jsonifier_internal::fnv1a_hash;
-		using simd_type	   = set_simd_t<storageSize>;
-		using integer_type = set_integer_t<storageSize>;
-		JSONIFIER_ALIGN uint8_t controlBytes[storageSize]{};
-		JSONIFIER_ALIGN value_type items[storageSize]{};
-		JSONIFIER_ALIGN uint64_t hashes[storageSize]{};
+		using hasher	   = fnv1a_hash;
+		using simd_type	   = set_simd_t<bucketSize>;
+		using integer_type = set_integer_t<bucketSize>;
+		JSONIFIER_ALIGN std::array<uint8_t, storageSize> controlBytes{};
+		JSONIFIER_ALIGN std::array<value_type, storageSize> items{};
+		JSONIFIER_ALIGN std::array<uint64_t, storageSize> hashes{};
+
+		constexpr simd_set() noexcept = default;
 
 		constexpr auto begin() const noexcept {
-			return items;
+			return items.data();
 		}
 
 		constexpr auto end() const noexcept {
-			return items + storageSize;
+			return items.data() + storageSize;
 		}
 
 		constexpr auto size() const noexcept {
@@ -104,61 +116,25 @@ namespace jsonifier_internal {
 		}
 
 		template<typename key_type_new> constexpr auto find(key_type_new&& key) const noexcept {
-			const auto hash		   = hasher::operator()(key.data(), key.size(), seed);
-			const auto hashNew	   = hash >> 7;
-			const size_t groupPos  = hashNew % numGroups;
-			const auto resultIndex = match(controlBytes + groupPos * bucketSize, static_cast<uint8_t>(hash));
-
-			return (hashes[groupPos * bucketSize + resultIndex] >> 7) == hashNew ? items + groupPos * bucketSize + resultIndex : end();
-		}
-
-		constexpr simd_set(const std::array<std::pair<key_type, value_type>, N>& pairs) : items{}, hashes{} {
-			if constexpr (N == 0) {
-				return;
+			const auto hash =
+				hasher::operator()(key.data(), static_cast<uint64_t>(static_cast<float>(key.size()) * static_cast<float>(scalingFactorTable[stringScalingFactorIndex])), seed);
+			const auto resultIndex = ((hash >> 7) % numGroups) * bucketSize;
+			if (std::is_constant_evaluated()) {
+				auto adjustedIndex = constMatch(controlBytes.data() + resultIndex, static_cast<uint8_t>(hash)) % bucketSize + resultIndex;
+				return (hashes[adjustedIndex] == hash) ? items.data() + adjustedIndex : end();
+			} else {
+				prefetchInternal(controlBytes.data() + resultIndex);
+				prefetchInternal(hashes.data() + resultIndex);
+				prefetchInternal(controlBytes.data() + resultIndex + bucketSize);
+				prefetchInternal(hashes.data() + resultIndex + bucketSize);
+				auto adjustedIndex = nonConstMatch(controlBytes.data() + resultIndex, static_cast<uint8_t>(hash)) % bucketSize + resultIndex;
+				return (hashes[adjustedIndex] == hash) ? items.data() + adjustedIndex : end();
 			}
-
-			size_t bucketSizes[numGroups]{};
-			seed = 1;
-			bool failed{};
-
-			do {
-				std::fill_n(items, storageSize, value_type{});
-				std::fill_n(controlBytes, storageSize, 0);
-				std::fill_n(bucketSizes, numGroups, 0);
-				std::fill_n(hashes, storageSize, 0);
-
-				failed = false;
-				for (size_t i = 0; i < N; ++i) {
-					const auto hash			 = hasher::operator()(pairs[i].first.data(), pairs[i].first.size(), seed);
-					const auto groupPos		 = (hash >> 7) % numGroups;
-					const auto bucketSizeNew = bucketSizes[groupPos]++;
-					const auto ctrlByte		 = static_cast<uint8_t>(hash);
-
-					if (bucketSizeNew >= bucketSize || doesItContainIt(controlBytes + groupPos * bucketSize, ctrlByte)) {
-						failed				  = true;
-						bucketSizes[groupPos] = 0;
-						++seed;
-						break;
-					}
-					controlBytes[groupPos * bucketSize + bucketSizeNew] = ctrlByte;
-					hashes[groupPos * bucketSize + bucketSizeNew]		= hash;
-					items[groupPos * bucketSize + bucketSizeNew]		= pairs[i].second;
-				}
-			} while (failed);
 		}
 
 	  protected:
-		constexpr bool doesItContainIt(const uint8_t* hashData, uint8_t byteToCheckFor) const {
-			for (uint64_t x = 0; x < bucketSize; ++x) {
-				if (hashData[x] == byteToCheckFor) {
-					return true;
-				}
-			}
-			return false;
-		}
-
-		constexpr uint8_t tzcnt(integer_type value) const {
-			uint8_t count{};
+		constexpr integer_type tzcnt(integer_type value) const {
+			integer_type count{};
 			while ((value & 1) == 0 && value != 0) {
 				value >>= 1;
 				++count;
@@ -166,9 +142,9 @@ namespace jsonifier_internal {
 			return count;
 		}
 
-		constexpr uint8_t constMatch(const uint8_t* hashData, uint8_t hash) const {
-			uint32_t mask = 0;
-			for (int32_t i = 0; i < bucketSize; ++i) {
+		constexpr integer_type constMatch(const uint8_t* hashData, uint8_t hash) const {
+			integer_type mask = 0;
+			for (uint64_t i = 0; i < bucketSize; ++i) {
 				if (hashData[i] == hash) {
 					mask |= (1 << i);
 				}
@@ -176,14 +152,129 @@ namespace jsonifier_internal {
 			return tzcnt(mask);
 		}
 
-		constexpr uint8_t nonConstMatch(const uint8_t* hashData, uint8_t hash) const {
+		constexpr integer_type nonConstMatch(const uint8_t* hashData, uint8_t hash) const {
 			return simd_internal::tzcnt(simd_internal::opCmpEq(simd_internal::gatherValue<simd_type>(hash), simd_internal::gatherValues<simd_type>(hashData)));
 		}
-
-		constexpr uint8_t match(const uint8_t* hashData, uint8_t hash) const {
-			return std::is_constant_evaluated() ? constMatch(hashData, hash) : nonConstMatch(hashData, hash);
-		}
 	};
+
+	template<typename value_type> constexpr bool contains(const value_type* hashData, value_type byteToCheckFor, uint64_t size) {
+		for (uint64_t x = 0; x < size; ++x) {
+			if (hashData[x] == byteToCheckFor) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	template<uint64_t bucketSize, typename key_type, typename value_type> using simd_set_variant =
+		std::variant<simd_set<key_type, value_type, bucketSize, 16>, simd_set<key_type, value_type, bucketSize, 32>, simd_set<key_type, value_type, bucketSize, 64>,
+			simd_set<key_type, value_type, bucketSize, 128>, simd_set<key_type, value_type, bucketSize, 256>, simd_set<key_type, value_type, bucketSize, 512>,
+			simd_set<key_type, value_type, bucketSize, 1024>, simd_set<key_type, value_type, bucketSize, 2048>, simd_set<key_type, value_type, bucketSize, 4096>,
+			simd_set<key_type, value_type, bucketSize, 8192>, simd_set<key_type, value_type, bucketSize, 16384>>;
+
+	constexpr std::array<uint64_t, 10> maxSizes{ 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192 };
+
+	template<uint64_t size> constexpr uint64_t getMaxSizeIndex() {
+		for (uint64_t x = 0; x < maxSizes.size(); ++x) {
+			if (size <= maxSizes[x]) {
+				return x;
+			}
+		}
+		return -1;
+	}
+
+	template<typename key_type, typename value_type, size_t N> constexpr auto constructSimdSet(const std::array<std::pair<key_type, value_type>, N>& pairsNew,
+		naive_prng prng = naive_prng{}) -> simd_set_variant<setSimdWidth<N>(), key_type, value_type> {
+		return constructSimdSetHelper<key_type, value_type, N, getMaxSizeIndex<N>()>(pairsNew, prng);
+	}
+
+	template<typename key_type, typename value_type, size_t N, uint64_t maxSizeIndex>
+	constexpr auto constructStringScalingFactor(const std::array<std::pair<key_type, value_type>, N>& pairsNew, uint64_t seed) {
+		return constructStringScalingFactorHelper<key_type, value_type, N, getMaxSizeIndex<N>(), 0>(pairsNew, seed);
+	}
+
+	template<typename key_type, typename value_type, size_t N, size_t maxSizeIndex, uint64_t stringScalingFactorIndex>
+	constexpr auto constructStringScalingFactorHelper(const std::array<std::pair<key_type, value_type>, N>& pairsNew, uint64_t seed) {
+		std::array<std::pair<key_type, value_type>, N> pairs{ pairsNew };
+		constexpr uint64_t bucketSize  = setSimdWidth<N>();
+		constexpr uint64_t storageSize = maxSizes[maxSizeIndex];
+		constexpr uint64_t numGroups   = storageSize > bucketSize ? storageSize / bucketSize : 1;
+
+		simd_set<key_type, value_type, setSimdWidth<N>(), storageSize> setNew{};
+		if constexpr (stringScalingFactorIndex < scalingFactorTable.size() - 1) {
+			std::array<uint8_t, storageSize> controlBytes{};
+			std::array<uint64_t, numGroups> bucketSizes{};
+			std::array<uint64_t, storageSize> slots{};
+
+			for (size_t i = 0; i < N; ++i) {
+				const auto hash			 = fnv1a_hash{}.operator()(pairs[i].first.data(),
+					 static_cast<uint64_t>(static_cast<float>(pairs[i].first.size()) * (static_cast<float>(scalingFactorTable[stringScalingFactorIndex]))), seed);
+				const auto groupPos		 = (hash >> 7) % numGroups;
+				const auto ctrlByte		 = static_cast<uint8_t>(hash);
+				const auto bucketSizeNew = ++bucketSizes[groupPos];
+				const auto slot			 = (groupPos * bucketSize) + bucketSizeNew;
+
+				if (bucketSizeNew >= bucketSize || contains(slots.data() + groupPos * bucketSize, slot, bucketSize) ||
+					contains(controlBytes.data() + groupPos * bucketSize, ctrlByte, bucketSize)) {
+					return constructStringScalingFactorHelper<key_type, value_type, N, maxSizeIndex, stringScalingFactorIndex + 1>(pairs, seed);
+				}
+
+				controlBytes[slot] = ctrlByte;
+				slots[i]		   = slot;
+			}
+			return stringScalingFactorIndex;
+		} else {
+			return stringScalingFactorIndex;
+		}
+	}
+
+	template<typename key_type, typename value_type, size_t N, size_t maxSizeIndex>
+	constexpr auto constructSimdSetHelper(const std::array<std::pair<key_type, value_type>, N>& pairsNew, naive_prng prng = naive_prng{})
+		-> simd_set_variant<setSimdWidth<N>(), key_type, value_type> {
+		std::array<std::pair<key_type, value_type>, N> pairs{ pairsNew };
+		constexpr uint64_t bucketSize  = setSimdWidth<N>();
+		constexpr uint64_t storageSize = maxSizes[maxSizeIndex];
+		constexpr uint64_t numGroups   = storageSize > bucketSize ? storageSize / bucketSize : 1;
+
+		simd_set<key_type, value_type, setSimdWidth<N>(), storageSize> setNew{};
+		if constexpr (maxSizeIndex < maxSizes.size() - 1) {
+			auto seed = prng();
+			std::array<uint8_t, storageSize> controlBytes{};
+			std::array<uint64_t, numGroups> bucketSizes{};
+			std::array<value_type, storageSize> items{};
+			std::array<uint64_t, storageSize> hashes{};
+			std::array<uint64_t, storageSize> slots{};
+			auto stringScalingFactorIndex = constructStringScalingFactorHelper<key_type, value_type, N, maxSizeIndex, 0>(pairs, seed);
+
+			for (size_t i = 0; i < N; ++i) {
+				const auto hash			 = fnv1a_hash{}.operator()(pairs[i].first.data(),
+					 static_cast<uint64_t>(static_cast<float>(pairs[i].first.size()) * (static_cast<float>(scalingFactorTable[stringScalingFactorIndex]))), seed);
+				const auto groupPos		 = (hash >> 7) % numGroups;
+				const auto ctrlByte		 = static_cast<uint8_t>(hash);
+				const auto bucketSizeNew = ++bucketSizes[groupPos];
+				const auto slot			 = (groupPos * bucketSize) + bucketSizeNew;
+
+				if (bucketSizeNew >= bucketSize || contains(slots.data() + groupPos * bucketSize, slot, bucketSize) ||
+					contains(controlBytes.data() + groupPos * bucketSize, ctrlByte, bucketSize)) {
+					return constructSimdSetHelper<key_type, value_type, N, maxSizeIndex + 1>(pairs, prng);
+				}
+
+				items[slot]		   = pairs[i].second;
+				controlBytes[slot] = ctrlByte;
+				slots[i]		   = slot;
+				hashes[slot]	   = hash;
+			}
+			setNew.stringScalingFactorIndex = stringScalingFactorIndex;
+			setNew.controlBytes				= controlBytes;
+			setNew.hashes					= hashes;
+			setNew.items					= items;
+			setNew.seed						= seed;
+			return simd_set_variant<setSimdWidth<N>(), key_type, value_type>{ setNew };
+		} else {
+			throw std::runtime_error{ "Sorry, but I failed to construct that hash-set!" };
+			return simd_set_variant<setSimdWidth<N>(), key_type, value_type>{ setNew };
+		}
+	}
 
 	template<const jsonifier::string_view& lhs> inline constexpr bool compareSv(const jsonifier::string_view rhs) noexcept {
 		constexpr auto N = lhs.size();
@@ -196,281 +287,6 @@ namespace jsonifier_internal {
 		} else {
 			return (lhs.size() == rhs.size()) && compare(lhs.data(), rhs.data(), lhs.size());
 		}
-	}
-
-	constexpr size_t naiveSetMaxSize = 32;
-
-	struct naive_set_desc {
-		size_t N{};
-		uint64_t seed{};
-		size_t bucketSize{};
-		size_t minLength = (std::numeric_limits<size_t>::max)();
-		size_t maxLength{};
-	};
-
-	constexpr uint64_t toUint64NBelow8(const char* bytes, const size_t N) noexcept {
-		static_assert(std::endian::native == std::endian::little);
-		uint64_t res{};
-		if (std::is_constant_evaluated()) {
-			for (size_t i = 0; i < N; ++i) {
-				res |= (uint64_t(uint8_t(bytes[i])) << (i << 3));
-			}
-		} else {
-			switch (N) {
-				case 1: {
-					std::memcpy(&res, bytes, 1);
-					break;
-				}
-				case 2: {
-					std::memcpy(&res, bytes, 2);
-					break;
-				}
-				case 3: {
-					std::memcpy(&res, bytes, 3);
-					break;
-				}
-				case 4: {
-					std::memcpy(&res, bytes, 4);
-					break;
-				}
-				case 5: {
-					std::memcpy(&res, bytes, 5);
-					break;
-				}
-				case 6: {
-					std::memcpy(&res, bytes, 6);
-					break;
-				}
-				case 7: {
-					std::memcpy(&res, bytes, 7);
-					break;
-				}
-				default: {
-					break;
-				}
-			}
-		}
-		return res;
-	}
-
-	template<size_t N = 8> constexpr uint64_t toUint64(const char* bytes) noexcept {
-		static_assert(N <= sizeof(uint64_t));
-		static_assert(std::endian::native == std::endian::little);
-		if (std::is_constant_evaluated()) {
-			uint64_t res{};
-			for (size_t i = 0; i < N; ++i) {
-				res |= (uint64_t(uint8_t(bytes[i])) << (i << 3));
-			}
-			return res;
-		} else if constexpr (N == 8) {
-			uint64_t res;
-			std::memcpy(&res, bytes, N);
-			return res;
-		} else {
-			uint64_t res{};
-			std::memcpy(&res, bytes, N);
-			constexpr auto numBytes = sizeof(uint64_t);
-			constexpr auto shift	= (uint64_t(numBytes - N) << 3);
-			if constexpr (shift == 0) {
-				return res;
-			} else {
-				return (res << shift) >> shift;
-			}
-		}
-	}
-
-	struct naive_hash {
-		inline constexpr uint64_t bitmix(uint64_t h) const noexcept {
-			h ^= (h >> 33);
-			h *= 0xff51afd7ed558ccdL;
-			h ^= (h >> 33);
-			h *= 0xc4ceb9fe1a85ec53L;
-			h ^= (h >> 33);
-			return h;
-		};
-
-		constexpr uint64_t operator()(std::integral auto value, const uint64_t seed) const noexcept {
-			return bitmix(uint64_t(value) ^ seed);
-		}
-
-		template<uint64_t seed> constexpr uint64_t operator()(std::integral auto value) const noexcept {
-			return bitmix(uint64_t(value) ^ seed);
-		}
-
-		constexpr uint64_t operator()(const jsonifier::string_view value, const uint64_t seed) const noexcept {
-			uint64_t h		 = (0xcbf29ce484222325 ^ seed) * 1099511628211;
-			const auto n	 = value.size();
-			const char* data = value.data();
-
-			if (n < 8) {
-				return bitmix(h ^ toUint64NBelow8(data, n));
-			}
-
-			const char* end7 = data + n - 7;
-			for (auto d0 = data; d0 < end7; d0 += 8) {
-				h = bitmix(h ^ toUint64(d0));
-			}
-			return bitmix(h ^ toUint64(data + n - 8));
-		}
-
-		template<naive_set_desc D> constexpr uint64_t operator()(const jsonifier::string_view value) const noexcept {
-			constexpr auto hInit = (0xcbf29ce484222325 ^ D.seed) * 1099511628211;
-			if constexpr (D.maxLength < 8) {
-				const auto n = value.size();
-				if (n > 7) {
-					return D.seed;
-				}
-				return bitmix(hInit ^ toUint64NBelow8(value.data(), n));
-			} else if constexpr (D.minLength > 7) {
-				const auto n = value.size();
-
-				if (n < 8) {
-					return D.seed;
-				}
-
-				uint64_t h		 = hInit;
-				const char* data = value.data();
-				const char* end7 = data + n - 7;
-				for (auto d0 = data; d0 < end7; d0 += 8) {
-					h = bitmix(h ^ toUint64(d0));
-				}
-				return bitmix(h ^ toUint64(data + n - 8));
-			} else {
-				uint64_t h		 = hInit;
-				const auto n	 = value.size();
-				const char* data = value.data();
-
-				if (n < 8) {
-					return bitmix(h ^ toUint64NBelow8(data, n));
-				}
-
-				const char* end7 = data + n - 7;
-				for (auto d0 = data; d0 < end7; d0 += 8) {
-					h = bitmix(h ^ toUint64(d0));
-				}
-				return bitmix(h ^ toUint64(data + n - 8));
-			}
-		}
-	};
-
-	constexpr bool contains(auto&& data, auto&& val) noexcept {
-		const auto n = data.size();
-		for (size_t i = 0; i < n; ++i) {
-			if (data[i] == val) {
-				return true;
-			}
-		}
-		return false;
-	}
-
-	template<size_t N> constexpr naive_set_desc makeSetHash(const std::array<jsonifier::string_view, N>& v) noexcept {
-		constexpr auto invalid = (std::numeric_limits<uint64_t>::max)();
-
-		naive_set_desc desc{ N };
-		desc.bucketSize = (N == 1) ? 1 : std::bit_ceil(N * N) / 2;
-		auto& seed		= desc.seed;
-
-		for (size_t i = 0; i < N; ++i) {
-			const auto n = v[i].size();
-			if (n < desc.minLength) {
-				desc.minLength = n;
-			}
-			if (n > desc.maxLength) {
-				desc.maxLength = n;
-			}
-		}
-
-		auto naivePerfectHash = [&] {
-			std::array<size_t, N> bucket_index{};
-
-			naive_prng gen{};
-			for (size_t i = 0; i < 1024; ++i) {
-				seed		 = gen();
-				size_t index = 0;
-				for (const auto& key: v) {
-					const auto hash = naive_hash{}(key, seed);
-					if (hash == seed) {
-						break;
-					}
-					const auto bucket = hash % desc.bucketSize;
-					if (contains(std::span{ bucket_index.data(), index }, bucket)) {
-						break;
-					}
-					bucket_index[index] = bucket;
-					++index;
-				}
-
-				if (index == N) {
-					const auto bucket = seed % desc.bucketSize;
-					if (not contains(std::span{ bucket_index.data(), N }, bucket)) {
-						return;
-					}
-				}
-			}
-
-			seed = invalid;
-		};
-
-		naivePerfectHash();
-		if (seed == invalid) {
-			std::abort();
-			return {};
-		}
-
-		return desc;
-	}
-
-	constexpr auto convertKeyValuesToValues(const auto values) {
-		constexpr auto size = std::size(values);
-		std::array<jsonifier::concepts::unwrap_t<std::remove_const_t<decltype(values[0].second)>>, size> returnValues{};
-		for (uint64_t x = 0; x < size; ++x) {
-			returnValues[x] = values[x].second;
-		}
-		return returnValues;
-	}
-
-	template<typename value_type, naive_set_desc D> struct naive_set : public naive_hash {
-		static constexpr auto N = D.N;
-		using hash_alg			= naive_hash;
-		std::array<uint8_t, D.bucketSize> controlBytes{};
-		std::array<value_type, N> items{};
-		std::array<uint64_t, N> hashes{};
-
-		constexpr naive_set(const std::array<std::pair<jsonifier::string_view, value_type>, D.N>& pairs) : items{ convertKeyValuesToValues(pairs) } {};
-
-		constexpr decltype(auto) begin() const noexcept {
-			return items.data();
-		}
-
-		constexpr decltype(auto) end() const noexcept {
-			return items.data() + items.size();
-		}
-
-		constexpr size_t size() const noexcept {
-			return items.size();
-		}
-
-		constexpr decltype(auto) find(auto&& key) const noexcept {
-			const auto hash	 = hash_alg::operator()<D>(key);
-			const auto index = controlBytes[hash % D.bucketSize];
-			if (hashes[index] != hash) [[unlikely]]
-				return items.data() + items.size();
-			return items.data() + index;
-		}
-	};
-
-	template<typename value_type, naive_set_desc D> constexpr auto makeNaiveSet(const std::array<std::pair<jsonifier::string_view, value_type>, D.N>& pairs) {
-		naive_set<value_type, D> ht{ pairs };
-
-		using hash_alg = naive_hash;
-
-		for (size_t i = 0; i < D.N; ++i) {
-			const auto hash						 = hash_alg{}.template operator()<D>(pairs[i].first);
-			ht.hashes[i]						 = hash;
-			ht.controlBytes[hash % D.bucketSize] = uint8_t(i);
-		}
-
-		return ht;
 	}
 
 	template<const jsonifier::string_view& S, bool CheckSize = true> inline constexpr bool cxStringCmp(const jsonifier::string_view key) noexcept {
@@ -611,13 +427,10 @@ namespace jsonifier_internal {
 			return micro_set1<value_t, core_sv<value_type, I>::value...>{ getValue<value_type, I>()... };
 		} else if constexpr (n == 2) {
 			return micro_set2<value_t, core_sv<value_type, I>::value...>{ getValue<value_type, I>()... };
-		} else if constexpr (isItCloseEnough<n>()) {
-			return simd_set<jsonifier::string_view, value_t, n>({ keyValue<value_type, I>()... });
 		} else {
-			constexpr std::array<jsonifier::string_view, n> keys{ getKey<value_type, I>()... };
-
-			constexpr auto naive_desc = makeSetHash<n>(keys);
-			return makeNaiveSet<value_t, naive_desc>(std::array{ keyValue<value_type, I>()... });
+			constexpr auto setNew{ constructSimdSet<jsonifier::string_view, value_t, n>({ keyValue<value_type, I>()... }) };
+			constexpr auto newIndex = setNew.index();
+			return std::get<newIndex>(setNew);
 		}
 	}
 

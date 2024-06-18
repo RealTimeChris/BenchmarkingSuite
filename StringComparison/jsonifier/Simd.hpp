@@ -95,7 +95,7 @@ namespace jsonifier_internal {
 		template<bool refreshString, typename char_type> JSONIFIER_INLINE std::string resetWithErrorPrintOut(char_type* stringViewNew, size_type size, size_type errorIndex) {
 			std::string returnValue{ "For the following string values: " };
 			if (static_cast<int64_t>(errorIndex) < std::string{}.max_size()) {
-				returnValue += std::string_view{ reinterpret_cast<const char*>(stringViewNew + errorIndex), 24 };
+				returnValue += jsonifier::string_view{ reinterpret_cast<const char*>(stringViewNew + errorIndex), 24 };
 				returnValue += "\n";
 			}
 			if constexpr (refreshString) {
@@ -133,7 +133,7 @@ namespace jsonifier_internal {
 
 	  protected:
 		static constexpr simd_int_t oddBitsVal{ simd_internal::simdFromValue<simd_int_t>(0xAA) };
-		JSONIFIER_ALIGN size_type newBits[SixtyFourBitsPerStep]{};
+		JSONIFIER_ALIGN size_type newBits[sixtyFourBitsPerStep]{};
 		JSONIFIER_ALIGN char block[BitsPerStep]{};
 		simd_internal::simd_int_t_holder rawStructurals{};
 		simd_int_t newPtr[StridesPerStep]{};
@@ -211,23 +211,23 @@ namespace jsonifier_internal {
 
 		template<bool collectAligned> JSONIFIER_INLINE void collectStringValues(string_view_ptr values) {
 			if constexpr (collectAligned) {
-				newPtr[0] = simd_internal::gatherValues<simd_int_t>(values + (BytesPerStep * 0));
-				newPtr[1] = simd_internal::gatherValues<simd_int_t>(values + (BytesPerStep * 1));
-				newPtr[2] = simd_internal::gatherValues<simd_int_t>(values + (BytesPerStep * 2));
-				newPtr[3] = simd_internal::gatherValues<simd_int_t>(values + (BytesPerStep * 3));
-				newPtr[4] = simd_internal::gatherValues<simd_int_t>(values + (BytesPerStep * 4));
-				newPtr[5] = simd_internal::gatherValues<simd_int_t>(values + (BytesPerStep * 5));
-				newPtr[6] = simd_internal::gatherValues<simd_int_t>(values + (BytesPerStep * 6));
-				newPtr[7] = simd_internal::gatherValues<simd_int_t>(values + (BytesPerStep * 7));
+				newPtr[0] = simd_internal::gatherValues<simd_int_t>(values + (bytesPerStep * 0));
+				newPtr[1] = simd_internal::gatherValues<simd_int_t>(values + (bytesPerStep * 1));
+				newPtr[2] = simd_internal::gatherValues<simd_int_t>(values + (bytesPerStep * 2));
+				newPtr[3] = simd_internal::gatherValues<simd_int_t>(values + (bytesPerStep * 3));
+				newPtr[4] = simd_internal::gatherValues<simd_int_t>(values + (bytesPerStep * 4));
+				newPtr[5] = simd_internal::gatherValues<simd_int_t>(values + (bytesPerStep * 5));
+				newPtr[6] = simd_internal::gatherValues<simd_int_t>(values + (bytesPerStep * 6));
+				newPtr[7] = simd_internal::gatherValues<simd_int_t>(values + (bytesPerStep * 7));
 			} else {
-				newPtr[0] = simd_internal::gatherValuesU<simd_int_t>(values + (BytesPerStep * 0));
-				newPtr[1] = simd_internal::gatherValuesU<simd_int_t>(values + (BytesPerStep * 1));
-				newPtr[2] = simd_internal::gatherValuesU<simd_int_t>(values + (BytesPerStep * 2));
-				newPtr[3] = simd_internal::gatherValuesU<simd_int_t>(values + (BytesPerStep * 3));
-				newPtr[4] = simd_internal::gatherValuesU<simd_int_t>(values + (BytesPerStep * 4));
-				newPtr[5] = simd_internal::gatherValuesU<simd_int_t>(values + (BytesPerStep * 5));
-				newPtr[6] = simd_internal::gatherValuesU<simd_int_t>(values + (BytesPerStep * 6));
-				newPtr[7] = simd_internal::gatherValuesU<simd_int_t>(values + (BytesPerStep * 7));
+				newPtr[0] = simd_internal::gatherValuesU<simd_int_t>(values + (bytesPerStep * 0));
+				newPtr[1] = simd_internal::gatherValuesU<simd_int_t>(values + (bytesPerStep * 1));
+				newPtr[2] = simd_internal::gatherValuesU<simd_int_t>(values + (bytesPerStep * 2));
+				newPtr[3] = simd_internal::gatherValuesU<simd_int_t>(values + (bytesPerStep * 3));
+				newPtr[4] = simd_internal::gatherValuesU<simd_int_t>(values + (bytesPerStep * 4));
+				newPtr[5] = simd_internal::gatherValuesU<simd_int_t>(values + (bytesPerStep * 5));
+				newPtr[6] = simd_internal::gatherValuesU<simd_int_t>(values + (bytesPerStep * 6));
+				newPtr[7] = simd_internal::gatherValuesU<simd_int_t>(values + (bytesPerStep * 7));
 			}
 		}
 
@@ -241,7 +241,7 @@ namespace jsonifier_internal {
 		}
 
 		template<uint64_t index = 0> JSONIFIER_INLINE void addTapeValues() {
-			if constexpr (index < SixtyFourBitsPerStep) {
+			if constexpr (index < sixtyFourBitsPerStep) {
 				if (!newBits[index]) [[unlikely]] {
 					return addTapeValues<index + 1>();
 				}

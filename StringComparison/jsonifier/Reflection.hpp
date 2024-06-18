@@ -121,7 +121,7 @@ namespace jsonifier_internal {
 	 * @return The name of the member pointer.
 	 */
 	template<typename value_type, auto p> constexpr decltype(auto) getNameMSVC() noexcept {
-		constexpr std::string_view str = JSONIFIER_PRETTY_FUNCTION;
+		constexpr jsonifier::string_view str = JSONIFIER_PRETTY_FUNCTION;
 		constexpr auto strNew		   = str.substr(str.find("->") + 2);
 		constexpr auto strNewer		   = strNew.substr(0, strNew.find(">"));
 		std::array<char, strNewer.size()> returnValues{};
