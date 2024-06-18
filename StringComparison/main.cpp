@@ -52,8 +52,6 @@ struct channel_data {
 };
 
 struct user_data {
-	std::nullptr_t avatar_decoration_data{ nullptr };
-	std::optional<std::string> display_name{};
 	std::optional<std::string> global_name{};
 	std::optional<std::string> avatar{};
 	std::nullptr_t banner{ nullptr };
@@ -166,6 +164,11 @@ struct guild_data {
 	bool owner{};
 	bool nsfw{};
 	bool lazy{};
+	int64_t flags01{};
+	bool large01{};
+	bool owner01{};
+	bool nsfw01{};
+	bool lazy01{};
 };
 
 struct discord_message {
@@ -197,10 +200,9 @@ template<> struct jsonifier::core<channel_data> {
 
 template<> struct jsonifier::core<user_data> {
 	using value_type = user_data;
-	static constexpr auto parseValue =
-		createValue<&value_type::avatar_decoration_data, &value_type::display_name, &value_type::global_name, &value_type::avatar, &value_type::banner, &value_type::locale,
-			&value_type::discriminator, &value_type::user_name, &value_type::accent_color, &value_type::premium_type, &value_type::public_flags, &value_type::email,
-			&value_type::mfa_enabled, &value_type::id, &value_type::flags, &value_type::verified, &value_type::system, &value_type::bot>();
+	static constexpr auto parseValue = createValue<&value_type::global_name, &value_type::avatar, &value_type::banner, &value_type::locale, &value_type::discriminator,
+		&value_type::user_name, &value_type::accent_color, &value_type::premium_type, &value_type::public_flags, &value_type::email, &value_type::mfa_enabled, &value_type::id,
+		&value_type::flags, &value_type::verified, &value_type::system, &value_type::bot>();
 };
 
 template<> struct jsonifier::core<member_data> {
@@ -233,7 +235,7 @@ template<> struct jsonifier::core<guild_data> {
 		&value_type::verification_level, &value_type::permissions, &value_type::max_presences, &value_type::discovery, &value_type::joined_at, &value_type::member_count,
 		&value_type::premium_tier, &value_type::owner_id, &value_type::max_members, &value_type::afk_timeout, &value_type::widget_enabled, &value_type::region,
 		&value_type::nsfw_level, &value_type::mfa_level, &value_type::name, &value_type::icon, &value_type::unavailable, &value_type::id, &value_type::flags, &value_type::large,
-		&value_type::owner, &value_type::nsfw, &value_type::lazy>();
+		&value_type::owner, &value_type::nsfw, &value_type::lazy, &value_type::flags01, &value_type::large01, &value_type::owner01, &value_type::nsfw01, &value_type::lazy01>();
 };
 
 template<> struct glz::meta<icon_emoji_data> {
@@ -261,11 +263,10 @@ template<> struct glz::meta<channel_data> {
 
 template<> struct glz::meta<user_data> {
 	using value_type			= user_data;
-	static constexpr auto value = object("avatar_decoration_data", &value_type::avatar_decoration_data, "display_name", &value_type::display_name, "global_name",
-		&value_type::global_name, "avatar", &value_type::avatar, "banner", &value_type::banner, "locale", &value_type::locale, "discriminator", &value_type::discriminator,
-		"user_name", &value_type::user_name, "accent_color", &value_type::accent_color, "premium_type", &value_type::premium_type, "public_flags", &value_type::public_flags,
-		"email", &value_type::email, "mfa_enabled", &value_type::mfa_enabled, "id", &value_type::id, "flags", &value_type::flags, "verified", &value_type::verified, "system",
-		&value_type::system, "bot", &value_type::bot);
+	static constexpr auto value = object("global_name", &value_type::global_name, "avatar", &value_type::avatar, "banner", &value_type::banner, "locale", &value_type::locale,
+		"discriminator", &value_type::discriminator, "user_name", &value_type::user_name, "accent_color", &value_type::accent_color, "premium_type", &value_type::premium_type,
+		"public_flags", &value_type::public_flags, "email", &value_type::email, "mfa_enabled", &value_type::mfa_enabled, "id", &value_type::id, "flags", &value_type::flags,
+		"verified", &value_type::verified, "system", &value_type::system, "bot", &value_type::bot);
 };
 
 template<> struct glz::meta<member_data> {
@@ -305,7 +306,8 @@ template<> struct glz::meta<guild_data> {
 		&value_type::owner_id, "max_members", &value_type::max_members, "afk_timeout", &value_type::afk_timeout, "widget_enabled", &value_type::widget_enabled, "region",
 		&value_type::region, "nsfw_level", &value_type::nsfw_level, "mfa_level", &value_type::mfa_level, "name", &value_type::name, "icon", &value_type::icon, "unavailable",
 		&value_type::unavailable, "id", &value_type::id, "flags", &value_type::flags, "large", &value_type::large, "owner", &value_type::owner, "nsfw", &value_type::nsfw, "lazy",
-		&value_type::lazy);
+		&value_type::lazy, "flags01", &value_type::flags01, "large01", &value_type::large01, "owner01", &value_type::owner01, "nsfw01", &value_type::nsfw01, "lazy01",
+		&value_type::lazy01);
 };
 
 template<> struct jsonifier::core<discord_message> {
@@ -842,8 +844,7 @@ int main() {
 	static constexpr std::array<glz::pair<std::string_view, jsonifier::string_view>, 18> arrayNewer03{ { { "avatar_decoration_data", "avatar_decoration_data" },
 		{ "display_name", "display_name" }, { "global_name", "global_name" }, { "avatar", "avatar" }, { "banner", "banner" }, { "locale", "locale" },
 		{ "discriminator", "discriminator" }, { "user_name", "user_name" }, { "accent_color", "accent_color" }, { "premium_type", "premium_type" },
-		{ "public_flags", "public_flags" }, { "email", "email" }, { "mfa_enabled", "mfa_enabled" }, { "id", "id" }, { "flags", "flags" }, { "verified", "verified" },
-		{ "system", "system" }, { "bot", "bot" } } };
+		{ "public_flags", "public_flags" }, { "email", "email" }, { "mfa_enabled", "mfa_enabled" }, { "id", "id" }, { "flags", "flags" }, { "verified", "verified" } } };
 
 	static constexpr std::array<glz::pair<std::string_view, jsonifier::string_view>, 14> arrayNewer04{ { { "communication_disabled_until", "communication_disabled_until" },
 		{ "premium_since", "premium_since" }, { "nick", "nick" }, { "avatar", "avatar" }, { "roles", "roles" }, { "permissions", "permissions" }, { "joined_at", "joined_at" },
@@ -855,7 +856,7 @@ int main() {
 		{ "permissions", "permissions" }, { "position", "position" }, { "name", "name" }, { "mentionable", "mentionable" }, { "version", "version" }, { "id", "id" },
 		{ "tags", "tags" }, { "color", "color" }, { "flags", "flags" }, { "managed", "managed" }, { "hoist", "hoist" } } };
 
-	static constexpr std::array<glz::pair<std::string_view, jsonifier::string_view>, 59> arrayNewer07{ { { "latest_on_boarding_question_id", "latest_on_boarding_question_id" },
+	static constexpr std::array<glz::pair<std::string_view, jsonifier::string_view>, 64> arrayNewer07{ { { "latest_on_boarding_question_id", "latest_on_boarding_question_id" },
 		{ "guild_scheduled_events", "guild_scheduled_events" }, { "safety_alerts_channel_id", "safety_alerts_channel_id" }, { "inventory_settings", "inventory_settings" },
 		{ "voice_states", "voice_states" }, { "discovery_splash", "discovery_splash" }, { "vanity_url_code", "vanity_url_code" }, { "application_id", "application_id" },
 		{ "afk_channel_id", "afk_channel_id" }, { "default_message_notifications", "default_message_notifications" },
@@ -870,7 +871,8 @@ int main() {
 		{ "max_presences", "max_presences" }, { "discovery", "discovery" }, { "joined_at", "joined_at" }, { "member_count", "member_count" }, { "premium_tier", "premium_tier" },
 		{ "owner_id", "owner_id" }, { "max_members", "max_members" }, { "afk_timeout", "afk_timeout" }, { "widget_enabled", "widget_enabled" }, { "region", "region" },
 		{ "nsfw_level", "nsfw_level" }, { "mfa_level", "mfa_level" }, { "name", "name" }, { "icon", "icon" }, { "unavailable", "unavailable" }, { "id", "id" },
-		{ "flags", "flags" }, { "large", "large" }, { "owner", "owner" }, { "nsfw", "nsfw" }, { "lazy", "lazy" } } };
+		{ "flags", "flags" }, { "large", "large" }, { "owner", "owner" }, { "nsfw", "nsfw" }, { "lazy", "lazy" }, { "flags01", "flags" }, { "large01", "large" }, { "owner01", "owner" },
+		{ "nsfw01", "nsfw" }, { "lazy01", "lazy" } } };
 
 	static constexpr auto jsonifierMapNew00{ jsonifier_internal::makeMap<icon_emoji_data>() };
 	static constexpr auto glazeMapNew00{ glz::detail::make_map<icon_emoji_data>() };
@@ -885,9 +887,11 @@ int main() {
 
 	static constexpr auto jsonifierMapNew03{ jsonifier_internal::makeMap<user_data>() };
 	static constexpr auto glazeMapNew03{ glz::detail::make_map<user_data>() };
+	std::cout << "CURRENT TYPE: " << typeid(jsonifierMapNew03).name() << std::endl;
 
 	static constexpr auto jsonifierMapNew04{ jsonifier_internal::makeMap<member_data>() };
 	static constexpr auto glazeMapNew04{ glz::detail::make_map<member_data>() };
+	std::cout << "IS IT CLOSE ENOUGH?: " << jsonifier_internal::isItCloseEnough<64>() << std::endl;
 	std::cout << "CURRENT TYPE: " << typeid(glazeMapNew04).name() << std::endl;
 
 	static constexpr auto jsonifierMapNew05{ jsonifier_internal::makeMap<tags_data>() };
@@ -898,7 +902,7 @@ int main() {
 
 	static constexpr auto jsonifierMapNew07{ jsonifier_internal::makeMap<guild_data>() };
 	static constexpr auto glazeMapNew07{ glz::detail::make_map<guild_data>() };
-
+	std::cout << "THE TYPE: " << typeid(jsonifierMapNew07).name() << std::endl;
 	for (const auto& elem: jsonifierMapNew01) {
 		std::cout << elem.first << '\n';
 	}

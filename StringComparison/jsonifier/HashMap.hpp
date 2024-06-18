@@ -36,6 +36,16 @@
 
 namespace jsonifier_internal {
 
+	struct naive_prng final {
+		uint64_t x = 7185499250578500046;
+		constexpr uint64_t operator()() noexcept {
+			x ^= x >> 12;
+			x ^= x << 25;
+			x ^= x >> 27;
+			return x * 0x2545F4914F6CDD1DULL;
+		}
+	};
+
 	template<uint64_t length> struct set_simd {
 		using type =
 			std::conditional_t<(length >= 64) && (BytesPerStep == 64), simd_int_512, std::conditional_t<(length >= 32) && (BytesPerStep == 32), simd_int_256, simd_int_128>>;
@@ -53,115 +63,315 @@ namespace jsonifier_internal {
 		return (length >= 64) && (BytesPerStep == 64) ? 64 : (length >= 32) && (BytesPerStep == 32) ? 32 : 16;
 	};
 
-	template<typename key_type, typename value_type, size_t N> struct simd_map : public jsonifier_internal::fnv1a_hash {
-		static constexpr uint64_t storageSize = roundUpToMultiple<setSimdLength<N>(), uint64_t>(N);
-		static constexpr uint64_t bucketSize  = ((N >= 16) ? 16 : N);
-		static constexpr uint64_t numGroups	  = storageSize > bucketSize ? storageSize / bucketSize : 1;
-		uint64_t seed{};
-		using hasher	   = jsonifier_internal::fnv1a_hash;
-		using simd_type	   = set_simd_t<storageSize>;
-		using integer_type = set_integer_t<storageSize>;
-		JSONIFIER_ALIGN std::pair<key_type, value_type> items[storageSize]{};
-		JSONIFIER_ALIGN uint8_t controlBytes[storageSize]{};
-		JSONIFIER_ALIGN uint64_t hashes[storageSize]{};
-
-		constexpr auto begin() const noexcept {
-			return items;
-		}
-
-		constexpr auto end() const noexcept {
-			return items + storageSize;
-		}
-
-		constexpr auto size() const noexcept {
-			return N;
-		}
-
-		template<typename key_type_new> constexpr auto find(key_type_new&& key) const noexcept {
-			const auto hash		   = hasher::operator()(key.data(), key.size(), seed);
-			const auto hashNew	   = hash >> 7;
-			const size_t groupPos  = hashNew % numGroups;
-			const auto resultIndex = match(controlBytes + groupPos * bucketSize, static_cast<uint8_t>(hash));
-
-			return (hashes[groupPos * bucketSize + resultIndex] >> 7) == hashNew ? items + groupPos * bucketSize + resultIndex : end();
-		}
-
-		constexpr simd_map(const std::array<std::pair<key_type, value_type>, N>& pairs) : items{}, hashes{} {
-			if constexpr (N == 0) {
-				return;
-			}
-
-			size_t bucketSizes[numGroups]{};
-			seed = 1;
-			bool failed{};
-
-			do {
-				std::fill_n(items, storageSize, std::pair<key_type, value_type>{});
-				std::fill_n(controlBytes, storageSize, 0);
-				std::fill_n(bucketSizes, numGroups, 0);
-				std::fill_n(hashes, storageSize, 0);
-
-				failed = false;
-				for (size_t i = 0; i < N; ++i) {
-					const auto hash			 = hasher::operator()(pairs[i].first.data(), pairs[i].first.size(), seed);
-					const auto groupPos		 = (hash >> 7) % numGroups;
-					const auto bucketSizeNew = bucketSizes[groupPos]++;
-					const auto ctrlByte		 = static_cast<uint8_t>(hash);
-
-					if (bucketSizeNew >= bucketSize || doesItContainIt(controlBytes + groupPos * bucketSize, ctrlByte)) {
-						failed				  = true;
-						bucketSizes[groupPos] = 0;
-						++seed;
-						break;
-					}
-					controlBytes[groupPos * bucketSize + bucketSizeNew] = ctrlByte;
-					hashes[groupPos * bucketSize + bucketSizeNew]		= hash;
-					items[groupPos * bucketSize + bucketSizeNew]		= pairs[i];
-				}
-			} while (failed);
-		}
-
-	  protected:
-		constexpr bool doesItContainIt(const uint8_t* hashData, uint8_t byteToCheckFor) const {
-			for (uint64_t x = 0; x < bucketSize; ++x) {
-				if (hashData[x] == byteToCheckFor) {
-					return true;
-				}
-			}
-			return false;
-		}
-
-		constexpr uint8_t tzcnt(integer_type value) const {
-			uint8_t count{};
-			while ((value & 1) == 0 && value != 0) {
-				value >>= 1;
-				++count;
-			}
-			return count;
-		}
-
-		constexpr uint8_t constMatch(const uint8_t* hashData, uint8_t hash) const {
-			uint32_t mask = 0;
-			for (int32_t i = 0; i < bucketSize; ++i) {
-				if (hashData[i] == hash) {
-					mask |= (1 << i);
-				}
-			}
-			return tzcnt(mask);
-		}
-
-		constexpr uint8_t nonConstMatch(const uint8_t* hashData, uint8_t hash) const {
-			return simd_internal::tzcnt(simd_internal::opCmpEq(simd_internal::gatherValue<simd_type>(hash), simd_internal::gatherValues<simd_type>(hashData)));
-		}
-
-		constexpr uint8_t match(const uint8_t* hashData, uint8_t hash) const {
-			return std::is_constant_evaluated() ? constMatch(hashData, hash) : nonConstMatch(hashData, hash);
-		}
+	template<uint64_t length> struct fit_unsigned {
+		using type = std::conditional_t<length <= std::numeric_limits<uint8_t>::max(), uint8_t, std::conditional_t<length <= std::numeric_limits<uint16_t>::max(), uint16_t, std::conditional_t<length <= std::numeric_limits<uint32_t>::max(), uint32_t, std::conditional_t<length<=std::numeric_limits<uint64_t>::max(),uint64_t, void>>>>;
 	};
 
 	template<const jsonifier::string_view& lhs> inline constexpr bool compareSv(const jsonifier::string_view rhs) noexcept {
 		constexpr auto N = lhs.size();
 		return (N == rhs.size()) && compare<N>(lhs.data(), rhs.data());
+	}
+	// compare_sv checks sizes
+	inline constexpr bool compare_sv(const jsonifier::string_view lhs, const jsonifier::string_view rhs) noexcept {
+		if (std::is_constant_evaluated()) {
+			return lhs == rhs;
+		} else {
+			return (lhs.size() == rhs.size()) && compare(lhs.data(), rhs.data(), lhs.size());
+		}
+	}
+
+	template<uint64_t length> using fit_unsigned_t = typename fit_unsigned<length>::type;
+
+	constexpr size_t naive_map_max_size = 32;
+
+	struct naive_map_desc {
+		size_t N{};
+		uint64_t seed{};
+		size_t bucket_size{};
+		bool use_hash_comparison = false;
+		size_t min_length		 = (std::numeric_limits<size_t>::max)();
+		size_t max_length{};
+	};
+
+	constexpr uint64_t to_uint64_n_below_8(const char* bytes, const size_t N) noexcept {
+		static_assert(std::endian::native == std::endian::little);
+		uint64_t res{};
+		if (std::is_constant_evaluated()) {
+			for (size_t i = 0; i < N; ++i) {
+				res |= (uint64_t(uint8_t(bytes[i])) << (i << 3));
+			}
+		} else {
+			switch (N) {
+				case 1: {
+					std::memcpy(&res, bytes, 1);
+					break;
+				}
+				case 2: {
+					std::memcpy(&res, bytes, 2);
+					break;
+				}
+				case 3: {
+					std::memcpy(&res, bytes, 3);
+					break;
+				}
+				case 4: {
+					std::memcpy(&res, bytes, 4);
+					break;
+				}
+				case 5: {
+					std::memcpy(&res, bytes, 5);
+					break;
+				}
+				case 6: {
+					std::memcpy(&res, bytes, 6);
+					break;
+				}
+				case 7: {
+					std::memcpy(&res, bytes, 7);
+					break;
+				}
+				default: {
+					// zero size case
+					break;
+				}
+			}
+		}
+		return res;
+	}
+
+	template<size_t N = 8> constexpr uint64_t to_uint64(const char* bytes) noexcept {
+		static_assert(N <= sizeof(uint64_t));
+		static_assert(std::endian::native == std::endian::little);
+		if (std::is_constant_evaluated()) {
+			uint64_t res{};
+			for (size_t i = 0; i < N; ++i) {
+				res |= (uint64_t(uint8_t(bytes[i])) << (i << 3));
+			}
+			return res;
+		} else if constexpr (N == 8) {
+			uint64_t res;
+			std::memcpy(&res, bytes, N);
+			return res;
+		} else {
+			uint64_t res{};
+			std::memcpy(&res, bytes, N);
+			constexpr auto num_bytes = sizeof(uint64_t);
+			constexpr auto shift	 = (uint64_t(num_bytes - N) << 3);
+			if constexpr (shift == 0) {
+				return res;
+			} else {
+				return (res << shift) >> shift;
+			}
+		}
+	}
+
+	// With perfect hash tables we can sacrifice quality of the hash function since
+	// we keep generating seeds until its perfect. This allows for the usage of fast
+	// but terible hashing algs.
+	// This is one such terible hashing alg
+	template<bool use_hash_comparison> struct naive_hash final {
+		static inline constexpr uint64_t bitmix(uint64_t h) noexcept {
+			if constexpr (use_hash_comparison) {
+				h ^= (h >> 33);
+				h *= 0xff51afd7ed558ccdL;
+				h ^= (h >> 33);
+				h *= 0xc4ceb9fe1a85ec53L;
+				h ^= (h >> 33);
+			} else {
+				h *= 0x9FB21C651E98DF25L;
+				h ^= std::rotr(h, 49);
+			}
+			return h;
+		};
+
+		constexpr uint64_t operator()(std::integral auto value, const uint64_t seed) noexcept {
+			return bitmix(uint64_t(value) ^ seed);
+		}
+
+		template<uint64_t seed> constexpr uint64_t operator()(std::integral auto value) noexcept {
+			return bitmix(uint64_t(value) ^ seed);
+		}
+
+		constexpr uint64_t operator()(const jsonifier::string_view value, const uint64_t seed) noexcept {
+			uint64_t h		 = (0xcbf29ce484222325 ^ seed) * 1099511628211;
+			const auto n	 = value.size();
+			const char* data = value.data();
+
+			if (n < 8) {
+				return bitmix(h ^ to_uint64_n_below_8(data, n));
+			}
+
+			const char* end7 = data + n - 7;
+			for (auto d0 = data; d0 < end7; d0 += 8) {
+				h = bitmix(h ^ to_uint64(d0));
+			}
+			// Handle potential tail. We know we have at least 8
+			return bitmix(h ^ to_uint64(data + n - 8));
+		}
+
+		template<naive_map_desc D> constexpr uint64_t operator()(const jsonifier::string_view value) noexcept {
+			constexpr auto h_init = (0xcbf29ce484222325 ^ D.seed) * 1099511628211;
+			if constexpr (D.max_length < 8) {
+				const auto n = value.size();
+				if (n > 7) {
+					return D.seed;
+				}
+				return bitmix(h_init ^ to_uint64_n_below_8(value.data(), n));
+			} else if constexpr (D.min_length > 7) {
+				const auto n = value.size();
+
+				if (n < 8) {
+					return D.seed;
+				}
+
+				uint64_t h		 = h_init;
+				const char* data = value.data();
+				const char* end7 = data + n - 7;
+				for (auto d0 = data; d0 < end7; d0 += 8) {
+					h = bitmix(h ^ to_uint64(d0));
+				}
+				// Handle potential tail. We know we have at least 8
+				return bitmix(h ^ to_uint64(data + n - 8));
+			} else {
+				uint64_t h		 = h_init;
+				const auto n	 = value.size();
+				const char* data = value.data();
+
+				if (n < 8) {
+					return bitmix(h ^ to_uint64_n_below_8(data, n));
+				}
+
+				const char* end7 = data + n - 7;
+				for (auto d0 = data; d0 < end7; d0 += 8) {
+					h = bitmix(h ^ to_uint64(d0));
+				}
+				// Handle potential tail. We know we have at least 8
+				return bitmix(h ^ to_uint64(data + n - 8));
+			}
+		}
+	};
+
+	constexpr bool contains(auto&& data, auto&& val) noexcept {
+		const auto n = data.size();
+		for (size_t i = 0; i < n; ++i) {
+			if (data[i] == val) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	template<bool use_hash_comparison, size_t N>
+	constexpr naive_map_desc naive_map_hash(const std::array<jsonifier::string_view, N>& v) noexcept {
+		constexpr auto invalid = (std::numeric_limits<uint64_t>::max)();
+
+		naive_map_desc desc{ N };
+		// std::bit_ceil(N * N) / 2 results in a max of around 62% collision chance (e.g. size 32).
+		// This uses 512 bytes for 32 keys.
+		// Keeping the bucket size a power of 2 probably makes the modulus more efficient.
+		desc.bucket_size		 = (N == 1) ? 1 : std::bit_ceil(N * N) / 2;
+		desc.use_hash_comparison = use_hash_comparison;
+		auto& seed				 = desc.seed;
+
+		for (size_t i = 0; i < N; ++i) {
+			const auto n = v[i].size();
+			if (n < desc.min_length) {
+				desc.min_length = n;
+			}
+			if (n > desc.max_length) {
+				desc.max_length = n;
+			}
+		}
+
+		auto naive_perfect_hash = [&] {
+			std::array<size_t, N> bucket_index{};
+
+			naive_prng gen{};
+			for (size_t i = 0; i < 1024; ++i) {
+				seed		 = gen();
+				size_t index = 0;
+				for (const auto& key: v) {
+					const auto hash = naive_hash<use_hash_comparison>{}(key, seed);
+					if (hash == seed) {
+						break;
+					}
+					const auto bucket = hash % desc.bucket_size;
+					if (contains(std::span{ bucket_index.data(), index }, bucket)) {
+						break;
+					}
+					bucket_index[index] = bucket;
+					++index;
+				}
+
+				if (index == N) {
+					// make sure the seed does not collide with any hashes
+					const auto bucket = seed % desc.bucket_size;
+					if (not contains(std::span{ bucket_index.data(), N }, bucket)) {
+						return;// found working seed
+					}
+				}
+			}
+
+			seed = invalid;
+		};
+
+		naive_perfect_hash();
+		if (seed == invalid) {
+			// Failed to find perfect hash
+			std::abort();
+			return {};
+		}
+
+		return desc;
+	}
+
+	template<class Value, naive_map_desc D>
+	struct simd_map {
+		// Birthday paradox makes this unsuitable for large numbers of keys without
+		// using a ton of memory.
+		static constexpr auto N = D.N;
+		using hash_alg			= naive_hash<D.use_hash_comparison>;
+		std::array<std::pair<jsonifier::string_view, Value>, N> items{};
+		std::array<uint64_t, N * D.use_hash_comparison> hashes{};
+		std::array<uint8_t, D.bucket_size> table{};
+
+		constexpr decltype(auto) begin() const noexcept {
+			return items.begin();
+		}
+		constexpr decltype(auto) end() const noexcept {
+			return items.end();
+		}
+
+		constexpr size_t size() const noexcept {
+			return items.size();
+		}
+
+		constexpr decltype(auto) find(auto&& key) const noexcept {
+			const auto hash = hash_alg{}.template operator()<D>(key);
+			// constexpr bucket_size means the compiler can replace the modulos with
+			// more efficient instructions So this is not as expensive as this looks
+			const auto index = table[hash % D.bucket_size];
+			if (hashes[index] != hash) [[unlikely]]
+				return items.end();
+			return items.begin() + index;
+		}
+	};
+
+	template<class value_type, naive_map_desc D>
+	constexpr auto make_naive_map(const std::array<std::pair<jsonifier::string_view, value_type>, D.N>& pairs) {
+		simd_map<value_type, D> ht{ pairs };
+
+		using hash_alg = naive_hash<D.use_hash_comparison>;
+
+		for (size_t i = 0; i < D.N; ++i) {
+			const auto hash = hash_alg{}.template operator()<D>(pairs[i].first);
+			if constexpr (D.use_hash_comparison) {
+				ht.hashes[i] = hash;
+			}
+			ht.table[hash % D.bucket_size] = uint8_t(i);
+		}
+
+		return ht;
 	}
 
 	template<const jsonifier::string_view& S, bool CheckSize = true> inline constexpr bool cxStringCmp(const jsonifier::string_view key) noexcept {
@@ -292,7 +502,10 @@ namespace jsonifier_internal {
 		} else if constexpr (n == 2) {
 			return micro_map2<value_t, core_sv<value_type, I>::value...>{ keyValue<value_type, I>()... };
 		} else {
-			return simd_map<jsonifier::string_view, value_t, n>({ keyValue<value_type, I>()... });
+			constexpr std::array<jsonifier::string_view, n> keys{ getKey<value_type, I>()... };
+
+			constexpr auto naive_desc = naive_map_hash<true, n>(keys);
+			return make_naive_map<value_t, naive_desc>(std::array{ keyValue<value_type, I>()... });
 		}
 	}
 
