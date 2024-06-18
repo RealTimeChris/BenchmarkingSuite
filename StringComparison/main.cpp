@@ -52,6 +52,8 @@ struct channel_data {
 };
 
 struct user_data {
+	std::nullptr_t avatar_decoration_data{ nullptr };
+	std::optional<std::string> display_name{};
 	std::optional<std::string> global_name{};
 	std::optional<std::string> avatar{};
 	std::nullptr_t banner{ nullptr };
@@ -169,6 +171,10 @@ struct guild_data {
 	bool owner01{};
 	bool nsfw01{};
 	bool lazy01{};
+
+	bool owner02{};
+	bool nsfw02{};
+	bool lazy02{};
 };
 
 struct discord_message {
@@ -200,9 +206,10 @@ template<> struct jsonifier::core<channel_data> {
 
 template<> struct jsonifier::core<user_data> {
 	using value_type = user_data;
-	static constexpr auto parseValue = createValue<&value_type::global_name, &value_type::avatar, &value_type::banner, &value_type::locale, &value_type::discriminator,
-		&value_type::user_name, &value_type::accent_color, &value_type::premium_type, &value_type::public_flags, &value_type::email, &value_type::mfa_enabled, &value_type::id,
-		&value_type::flags, &value_type::verified, &value_type::system, &value_type::bot>();
+	static constexpr auto parseValue =
+		createValue<&value_type::avatar_decoration_data, &value_type::display_name, &value_type::global_name, &value_type::avatar, &value_type::banner, &value_type::locale,
+			&value_type::discriminator, &value_type::user_name, &value_type::accent_color, &value_type::premium_type, &value_type::public_flags, &value_type::email,
+			&value_type::mfa_enabled, &value_type::id, &value_type::flags, &value_type::verified, &value_type::system, &value_type::bot>();
 };
 
 template<> struct jsonifier::core<member_data> {
@@ -235,7 +242,8 @@ template<> struct jsonifier::core<guild_data> {
 		&value_type::verification_level, &value_type::permissions, &value_type::max_presences, &value_type::discovery, &value_type::joined_at, &value_type::member_count,
 		&value_type::premium_tier, &value_type::owner_id, &value_type::max_members, &value_type::afk_timeout, &value_type::widget_enabled, &value_type::region,
 		&value_type::nsfw_level, &value_type::mfa_level, &value_type::name, &value_type::icon, &value_type::unavailable, &value_type::id, &value_type::flags, &value_type::large,
-		&value_type::owner, &value_type::nsfw, &value_type::lazy, &value_type::flags01, &value_type::large01, &value_type::owner01, &value_type::nsfw01, &value_type::lazy01>();
+		&value_type::owner, &value_type::nsfw, &value_type::lazy, &value_type::flags01, &value_type::large01, &value_type::owner01, &value_type::nsfw01, &value_type::lazy01,
+		&value_type::owner02, &value_type::nsfw02, &value_type::lazy02>();
 };
 
 template<> struct glz::meta<icon_emoji_data> {
@@ -263,10 +271,11 @@ template<> struct glz::meta<channel_data> {
 
 template<> struct glz::meta<user_data> {
 	using value_type			= user_data;
-	static constexpr auto value = object("global_name", &value_type::global_name, "avatar", &value_type::avatar, "banner", &value_type::banner, "locale", &value_type::locale,
-		"discriminator", &value_type::discriminator, "user_name", &value_type::user_name, "accent_color", &value_type::accent_color, "premium_type", &value_type::premium_type,
-		"public_flags", &value_type::public_flags, "email", &value_type::email, "mfa_enabled", &value_type::mfa_enabled, "id", &value_type::id, "flags", &value_type::flags,
-		"verified", &value_type::verified, "system", &value_type::system, "bot", &value_type::bot);
+	static constexpr auto value = object("avatar_decoration_data", &value_type::avatar_decoration_data, "display_name", &value_type::display_name, "global_name",
+		&value_type::global_name, "avatar", &value_type::avatar, "banner", &value_type::banner, "locale", &value_type::locale, "discriminator", &value_type::discriminator,
+		"user_name", &value_type::user_name, "accent_color", &value_type::accent_color, "premium_type", &value_type::premium_type, "public_flags", &value_type::public_flags,
+		"email", &value_type::email, "mfa_enabled", &value_type::mfa_enabled, "id", &value_type::id, "flags", &value_type::flags, "verified", &value_type::verified, "system",
+		&value_type::system, "bot", &value_type::bot);
 };
 
 template<> struct glz::meta<member_data> {
@@ -307,7 +316,7 @@ template<> struct glz::meta<guild_data> {
 		&value_type::region, "nsfw_level", &value_type::nsfw_level, "mfa_level", &value_type::mfa_level, "name", &value_type::name, "icon", &value_type::icon, "unavailable",
 		&value_type::unavailable, "id", &value_type::id, "flags", &value_type::flags, "large", &value_type::large, "owner", &value_type::owner, "nsfw", &value_type::nsfw, "lazy",
 		&value_type::lazy, "flags01", &value_type::flags01, "large01", &value_type::large01, "owner01", &value_type::owner01, "nsfw01", &value_type::nsfw01, "lazy01",
-		&value_type::lazy01);
+		&value_type::lazy01, "owner02", &value_type::owner02, "nsfw02", &value_type::nsfw02, "lazy02", &value_type::lazy02);
 };
 
 template<> struct jsonifier::core<discord_message> {
@@ -752,26 +761,26 @@ template<> inline uint8_t match<2>(const uint8_t* indices, uint8_t hash) {
 	return simd_internal::tzcnt(comparisonResult);
 }
 
-template<uint64_t length> struct convert_length_to_int_type {
+template<uint64_t length> struct convert_length_to_int {
 	static_assert(length <= 8, "Sorry, but that string is too long!");
 	using type = std::conditional_t<length == 1, uint8_t,
 		std::conditional_t<length <= 2, uint16_t, std::conditional_t<length <= 4, uint32_t, std::conditional_t<length <= 8, uint64_t, void>>>>;
 };
 
-template<uint64_t length> using convert_length_to_int_type_t = typename convert_length_to_int_type<length>::type;
+template<uint64_t length> using convert_length_to_int_t = typename convert_length_to_int<length>::type;
 
-template<jsonifier_internal::string_literal string> constexpr convert_length_to_int_type_t<string.size()> getStringAsInt() {
+template<bnch_swt::string_literal string> constexpr convert_length_to_int_t<string.size()> getStringAsInt() {
 	const char* stringNew = string.data();
-	convert_length_to_int_type_t<string.size()> returnValue{};
+	convert_length_to_int_t<string.size()> returnValue{};
 	for (uint64_t x = 0; x < string.size(); ++x) {
-		returnValue |= static_cast<convert_length_to_int_type_t<string.size()>>(stringNew[x]) << x * 8;
+		returnValue |= static_cast<convert_length_to_int_t<string.size()>>(stringNew[x]) << x * 8;
 	}
 	return returnValue;
 }
 
-template<jsonifier_internal::string_literal string> JSONIFIER_INLINE bool compareStringAsInt(const char* iter) {
+template<bnch_swt::string_literal string> JSONIFIER_INLINE bool compareStringAsInt(const char* iter) {
 	static constexpr auto newString{ getStringAsInt<string>() };
-	convert_length_to_int_type_t<string.size()> newString02{};
+	convert_length_to_int_t<string.size()> newString02{};
 	std::memcpy(&newString02, iter, string.size());
 	return newString == newString02;
 }
@@ -789,6 +798,28 @@ template<typename iterator_type, jsonifier::concepts::bool_t bool_type> JSONIFIE
 		return false;
 	}
 }
+
+template<typename iterator_type, jsonifier::concepts::bool_t bool_type> JSONIFIER_INLINE bool parseBool02(bool_type& value, iterator_type&& iter) {
+	uint64_t c{};
+	// Note that because our buffer must be null terminated, we can read one more index without checking:
+	std::memcpy(&c, iter, 5);
+	constexpr uint64_t u_true  = 0b00000000'00000000'00000000'00000000'01100101'01110101'01110010'01110100;
+	constexpr uint64_t u_false = 0b00000000'00000000'00000000'01100101'01110011'01101100'01100001'01100110;
+	// We have to wipe the 5th character for true testing
+	if ((c & 0xFF'FF'FF'00'FF'FF'FF'FF) == u_true) {
+		value = true;
+		iter += 4;
+	} else {
+		if (c != u_false) [[unlikely]] {
+			return false;
+		}
+		value = false;
+		iter += 5;
+	}
+	return true;
+}
+
+
 
 template<jsonifier_internal::simd_structural_iterator_t iterator_type, jsonifier::concepts::bool_t bool_type>
 JSONIFIER_INLINE bool parseBool(bool_type& value, iterator_type&& iter) {
@@ -814,49 +845,73 @@ template<typename iterator_type> JSONIFIER_INLINE bool parseNull(iterator_type&&
 	}
 }
 
-template<jsonifier_internal::simd_structural_iterator_t iterator_type> JSONIFIER_INLINE bool parseNull(iterator_type&& iter) {
-	if (compareStringAsInt<"null">(iter)) {
-		++iter;
-		return true;
-	} else {
+template<typename iterator_type> JSONIFIER_INLINE bool parseNull02(iterator_type&& iter) {
+	static constexpr bnch_swt::string_literal str{ "null" }; 
+	if (!glz::compare<str.size()>(iter, str.values)) [[unlikely]] {
 		return false;
+	}
+	else [[likely]] {
+		iter += str.size();
+		return true;
 	}
 }
 
+template<typename value_type, uint64_t size> constexpr auto convertRawToArray(value_type values[size]) {
+	std::array<value_type, size> returnValues{};
+	for (uint64_t x = 0; x < size; ++x) {
+		returnValues[x] = values[x];
+	}
+	return returnValues;
+}
+
 int main() {
-	std::string testString{ "TESTING" };
+	std::string testString{ "true" };
+	std::string nullString{ "null" };
 	std::cout << "STRING LENGTH: " << testString.end() - testString.begin() << std::endl;
 
-	static constexpr std::array<glz::pair<std::string_view, jsonifier::string_view>, 4> arrayNewer00{ { { "id", "id" }, { "name", "name" } } };
+	static constexpr glz::pair<std::string_view, jsonifier::string_view> arrayNew00[]{ { "id", "id" }, { "name", "name" } };
 
-	static constexpr std::array<glz::pair<std::string_view, jsonifier::string_view>, 4> arrayNewer01{ { { "deny", "deny" }, { "allow", "allow" }, { "id", "id" },
-		{ "type", "type" } } };
+	static constexpr auto arrayNewer00 = convertRawToArray(arrayNew00);
 
-	static constexpr std::array<glz::pair<std::string_view, jsonifier::string_view>, 34> arrayNewer02{ { { "permission_overwrites", "permission_overwrites" },
+	static constexpr glz::pair<std::string_view, jsonifier::string_view> arrayNew01[]{ { "deny", "deny" }, { "allow", "allow" }, { "id", "id" }, { "type", "type" } };
+
+	static constexpr auto arrayNewer01 = convertRawToArray(arrayNew01);
+
+	static constexpr glz::pair<std::string_view, jsonifier::string_view> arrayNew02[]{ { "permission_overwrites", "permission_overwrites" },
 		{ "last_message_id", "last_message_id" }, { "default_thread_rate_limit_per_user", "default_thread_rate_limit_per_user" }, { "applied_tags", "applied_tags" },
 		{ "recipients", "recipients" }, { "default_auto_archive_duration", "default_auto_archive_duration" }, { "rtc_region", "rtc_region" }, { "status", "status" },
 		{ "last_pin_timestamp", "last_pin_timestamp" }, { "topic", "topic" }, { "rate_limit_per_user", "rate_limit_per_user" }, { "icon_emoji", "icon_emoji" },
 		{ "total_message_sent", "total_message_sent" }, { "video_quality_mode", "video_quality_mode" }, { "application_id", "application_id" }, { "permissions", "permissions" },
 		{ "message_count", "message_count" }, { "parent_id", "parent_id" }, { "member_count", "member_count" }, { "owner_id", "owner_id" }, { "guild_id", "guild_id" },
 		{ "user_limit", "user_limit" }, { "position", "position" }, { "name", "name" }, { "icon", "icon" }, { "version", "version" }, { "bitrate", "bitrate" }, { "id", "id" },
-		{ "flags", "flags" }, { "type", "type" }, { "managed", "managed" }, { "nsfw", "nsfw" } } };
+		{ "flags", "flags" }, { "type", "type" }, { "managed", "managed" }, { "nsfw", "nsfw" } };
 
-	static constexpr std::array<glz::pair<std::string_view, jsonifier::string_view>, 18> arrayNewer03{ { { "avatar_decoration_data", "avatar_decoration_data" },
-		{ "display_name", "display_name" }, { "global_name", "global_name" }, { "avatar", "avatar" }, { "banner", "banner" }, { "locale", "locale" },
-		{ "discriminator", "discriminator" }, { "user_name", "user_name" }, { "accent_color", "accent_color" }, { "premium_type", "premium_type" },
-		{ "public_flags", "public_flags" }, { "email", "email" }, { "mfa_enabled", "mfa_enabled" }, { "id", "id" }, { "flags", "flags" }, { "verified", "verified" } } };
+	static constexpr auto arrayNewer02 = convertRawToArray(arrayNew02);
 
-	static constexpr std::array<glz::pair<std::string_view, jsonifier::string_view>, 14> arrayNewer04{ { { "communication_disabled_until", "communication_disabled_until" },
+	static constexpr glz::pair<std::string_view, jsonifier::string_view> arrayNew03[]{ { "avatar_decoration_data", "avatar_decoration_data" }, { "display_name", "display_name" },
+		{ "global_name", "global_name" }, { "avatar", "avatar" }, { "banner", "banner" }, { "locale", "locale" }, { "discriminator", "discriminator" },
+		{ "user_name", "user_name" }, { "accent_color", "accent_color" }, { "premium_type", "premium_type" }, { "public_flags", "public_flags" }, { "email", "email" },
+		{ "mfa_enabled", "mfa_enabled" }, { "id", "id" }, { "flags", "flags" }, { "verified", "verified" }, { "system", "system" }, { "bot", "bot" } };
+
+	static constexpr auto arrayNewer03 = convertRawToArray(arrayNew03);
+
+	static constexpr glz::pair<std::string_view, jsonifier::string_view> arrayNew04[]{ { "communication_disabled_until", "communication_disabled_until" },
 		{ "premium_since", "premium_since" }, { "nick", "nick" }, { "avatar", "avatar" }, { "roles", "roles" }, { "permissions", "permissions" }, { "joined_at", "joined_at" },
-		{ "guild_id", "guild_id" }, { "user", "user" }, { "flags", "flags" }, { "pending", "pending" }, { "deaf", "deaf" }, { "mute", "mute" } } };
+		{ "guild_id", "guild_id" }, { "user", "user" }, { "flags", "flags" }, { "pending", "pending" }, { "deaf", "deaf" }, { "mute", "mute" } };
 
-	static constexpr std::array<glz::pair<std::string_view, jsonifier::string_view>, 3> arrayNewer05{ { { "premium_subscriber", "premium_subscriber" }, { "bot_id", "bot_id" } } };
+	static constexpr auto arrayNewer04 = convertRawToArray(arrayNew04);
 
-	static constexpr std::array<glz::pair<std::string_view, jsonifier::string_view>, 13> arrayNewer06{ { { "unicode_emoji", "unicode_emoji" }, { "icon", "icon" },
-		{ "permissions", "permissions" }, { "position", "position" }, { "name", "name" }, { "mentionable", "mentionable" }, { "version", "version" }, { "id", "id" },
-		{ "tags", "tags" }, { "color", "color" }, { "flags", "flags" }, { "managed", "managed" }, { "hoist", "hoist" } } };
+	static constexpr glz::pair<std::string_view, jsonifier::string_view> arrayNew05[]{ { "premium_subscriber", "premium_subscriber" }, { "bot_id", "bot_id" } };
 
-	static constexpr std::array<glz::pair<std::string_view, jsonifier::string_view>, 64> arrayNewer07{ { { "latest_on_boarding_question_id", "latest_on_boarding_question_id" },
+	static constexpr auto arrayNewer05 = convertRawToArray(arrayNew05);
+
+	static constexpr glz::pair<std::string_view, jsonifier::string_view> arrayNew06[]{ { "unicode_emoji", "unicode_emoji" }, { "icon", "icon" }, { "permissions", "permissions" },
+		{ "position", "position" }, { "name", "name" }, { "mentionable", "mentionable" }, { "version", "version" }, { "id", "id" }, { "tags", "tags" }, { "color", "color" },
+		{ "flags", "flags" }, { "managed", "managed" }, { "hoist", "hoist" } };
+
+	static constexpr auto arrayNewer06 = convertRawToArray(arrayNew06);
+
+	static constexpr glz::pair<std::string_view, jsonifier::string_view> arrayNew07[]{ { "latest_on_boarding_question_id", "latest_on_boarding_question_id" },
 		{ "guild_scheduled_events", "guild_scheduled_events" }, { "safety_alerts_channel_id", "safety_alerts_channel_id" }, { "inventory_settings", "inventory_settings" },
 		{ "voice_states", "voice_states" }, { "discovery_splash", "discovery_splash" }, { "vanity_url_code", "vanity_url_code" }, { "application_id", "application_id" },
 		{ "afk_channel_id", "afk_channel_id" }, { "default_message_notifications", "default_message_notifications" },
@@ -871,19 +926,21 @@ int main() {
 		{ "max_presences", "max_presences" }, { "discovery", "discovery" }, { "joined_at", "joined_at" }, { "member_count", "member_count" }, { "premium_tier", "premium_tier" },
 		{ "owner_id", "owner_id" }, { "max_members", "max_members" }, { "afk_timeout", "afk_timeout" }, { "widget_enabled", "widget_enabled" }, { "region", "region" },
 		{ "nsfw_level", "nsfw_level" }, { "mfa_level", "mfa_level" }, { "name", "name" }, { "icon", "icon" }, { "unavailable", "unavailable" }, { "id", "id" },
-		{ "flags", "flags" }, { "large", "large" }, { "owner", "owner" }, { "nsfw", "nsfw" }, { "lazy", "lazy" }, { "flags01", "flags" }, { "large01", "large" }, { "owner01", "owner" },
-		{ "nsfw01", "nsfw" }, { "lazy01", "lazy" } } };
+		{ "flags", "flags" }, { "large", "large" }, { "owner", "owner" }, { "nsfw", "nsfw" }, { "lazy", "lazy" } };
+
+	static constexpr auto arrayNewer07 = convertRawToArray(arrayNew07);
 
 	static constexpr auto jsonifierMapNew00{ jsonifier_internal::makeMap<icon_emoji_data>() };
 	static constexpr auto glazeMapNew00{ glz::detail::make_map<icon_emoji_data>() };
+	std::cout << "CURRENT TYPE: " << typeid(jsonifierMapNew00).name() << std::endl;
 
 	static constexpr auto jsonifierMapNew01{ jsonifier_internal::makeMap<permission_overwrite>() };
 	static constexpr auto glazeMapNew01{ glz::detail::make_map<permission_overwrite>() };
-	std::cout << "CURRENT TYPE: " << typeid(glazeMapNew01).name() << std::endl;
+	std::cout << "CURRENT TYPE: " << typeid(jsonifierMapNew01).name() << std::endl;
 
 	static constexpr auto jsonifierMapNew02{ jsonifier_internal::makeMap<channel_data>() };
 	static constexpr auto glazeMapNew02{ glz::detail::make_map<channel_data>() };
-	//static constexpr glz::detail::normal_map<std::string_view, jsonifier::string_view, std::size(arrayNewer02)> glazeMapNew02{ arrayNewer02 };
+	std::cout << "CURRENT TYPE: " << typeid(jsonifierMapNew02).name() << std::endl;
 
 	static constexpr auto jsonifierMapNew03{ jsonifier_internal::makeMap<user_data>() };
 	static constexpr auto glazeMapNew03{ glz::detail::make_map<user_data>() };
@@ -891,24 +948,25 @@ int main() {
 
 	static constexpr auto jsonifierMapNew04{ jsonifier_internal::makeMap<member_data>() };
 	static constexpr auto glazeMapNew04{ glz::detail::make_map<member_data>() };
-	std::cout << "IS IT CLOSE ENOUGH?: " << jsonifier_internal::isItCloseEnough<64>() << std::endl;
-	std::cout << "CURRENT TYPE: " << typeid(glazeMapNew04).name() << std::endl;
+	std::cout << "CURRENT TYPE: " << typeid(jsonifierMapNew04).name() << std::endl;
 
 	static constexpr auto jsonifierMapNew05{ jsonifier_internal::makeMap<tags_data>() };
 	static constexpr auto glazeMapNew05{ glz::detail::make_map<tags_data>() };
+	std::cout << "CURRENT TYPE: " << typeid(jsonifierMapNew05).name() << std::endl;
 
 	static constexpr auto jsonifierMapNew06{ jsonifier_internal::makeMap<role_data>() };
 	static constexpr auto glazeMapNew06{ glz::detail::make_map<role_data>() };
+	std::cout << "CURRENT TYPE: " << typeid(jsonifierMapNew06).name() << std::endl;
+	//static constexpr auto jsonifierMapNew07{ jsonifier_internal::makeMap<guild_data>() };
+	//static constexpr auto glazeMapNew07{ glz::detail::make_map<guild_data>() };
+	//std::cout << "CURRENT TYPE: " << typeid(jsonifierMapNew07).name() << std::endl;
 
-	static constexpr auto jsonifierMapNew07{ jsonifier_internal::makeMap<guild_data>() };
-	static constexpr auto glazeMapNew07{ glz::detail::make_map<guild_data>() };
-	std::cout << "THE TYPE: " << typeid(jsonifierMapNew07).name() << std::endl;
 	for (const auto& elem: jsonifierMapNew01) {
-		std::cout << elem.first << '\n';
+		std::cout << typeid(elem).name() << '\n';
 	}
 
 	for (const auto& elem: jsonifierMapNew03) {
-		std::cout << elem.first << '\n';
+		//std::cout << *elem << '\n';
 	}
 	//auto newFind = mapNew.find("b");
 	//std::cout << "CURRENT VALUE: " << newFind.operator*().second << std::endl;
@@ -924,9 +982,9 @@ int main() {
 	jsonifier::jsonifier_core parser{};
 
 	test_generator<test_struct> testData{};
-	discord_message message{};
-	parser.parseJson<jsonifier::parse_options{ .minified = false }>(testData, raw01.operator std::string&());
-	parser.serializeJson(testData, raw01.operator std::string&());
+	icon_emoji_data message{};
+	parser.parseJson<jsonifier::parse_options{ .minified = false }>(message, raw01.operator std::string&());
+	//parser.serializeJson(message, raw01.operator std::string&());
 	for (auto& value: parser.getErrors()) {
 		std::cout << "ERROR: " << value.reportError() << std::endl;
 	}
@@ -940,10 +998,55 @@ int main() {
 	jsonifier::string newString02{};
 	jsonifier::jsonifier_core parser02{};
 	//std::cout << "CURRENT TYPE: " << typeid(int32_t&).name() << std::endl;
+
+	bnch_swt::benchmark_suite<"Bool Test">::benchmark<"glz::detail::parse_json: ", "steelblue", 1000>([&] {
+		for (uint64_t x = 0; x < 1024; ++x) {
+			for (uint64_t y = 0; y < std::size(arrayNew00); ++y) {
+				bool newBool{};
+				parseBool02(newBool, testString.data());
+				bnch_swt::doNotOptimizeAway(newBool);
+			}
+		}
+		return;
+	});
+
+	bnch_swt::benchmark_suite<"Bool Test">::benchmark<"jsonifier_internal::parseBool: ", "steelblue", 1000>([&] {
+		for (uint64_t x = 0; x < 1024; ++x) {
+			for (uint64_t y = 0; y < std::size(arrayNew00); ++y) {
+				bool newBool{};
+				parseBool(newBool, testString.data());
+				bnch_swt::doNotOptimizeAway(newBool);
+			}
+		}
+		return;
+	});
+
+	bnch_swt::benchmark_suite<"Null Test">::benchmark<"glz::detail::parse_json: ", "steelblue", 1000>([&] {
+		for (uint64_t x = 0; x < 1024; ++x) {
+			for (uint64_t y = 0; y < std::size(arrayNew00); ++y) {
+				bool newNull{};
+				parseNull02(nullString.data());
+				bnch_swt::doNotOptimizeAway(newNull);
+			}
+		}
+		return;
+	});
+
+	bnch_swt::benchmark_suite<"Null Test">::benchmark<"jsonifier_internal::parseNull: ", "steelblue", 1000>([&] {
+		for (uint64_t x = 0; x < 1024; ++x) {
+			for (uint64_t y = 0; y < std::size(arrayNew00); ++y) {
+				bool newNull{};
+				parseNull(nullString.data());
+				bnch_swt::doNotOptimizeAway(newNull);
+			}
+		}
+		return;
+	});
+
 	bnch_swt::benchmark_suite<"Find Test">::benchmark<"glz::detail::icon_emoji_data: ", "steelblue", 1000>([&] {
 		for (uint64_t x = 0; x < 1024; ++x) {
-			for (uint64_t y = 0; y < std::size(arrayNewer00); ++y) {
-				auto newString = glazeMapNew00.find(arrayNewer00[y].first);
+			for (uint64_t y = 0; y < std::size(arrayNew00); ++y) {
+				auto newString = glazeMapNew00.find(arrayNew00[y].first);
 				bnch_swt::doNotOptimizeAway(newString);
 			}
 		}
@@ -952,8 +1055,8 @@ int main() {
 
 	bnch_swt::benchmark_suite<"Find Test">::benchmark<"jsonifier_internal::icon_emoji_data: ", "steelblue", 1000>([&] {
 		for (uint64_t x = 0; x < 1024; ++x) {
-			for (uint64_t y = 0; y < std::size(arrayNewer00); ++y) {
-				auto newString = jsonifierMapNew00.find(arrayNewer00[y].first);
+			for (uint64_t y = 0; y < std::size(arrayNew00); ++y) {
+				auto newString = jsonifierMapNew00.find(arrayNew00[y].first);
 				bnch_swt::doNotOptimizeAway(newString);
 			}
 		}
@@ -962,8 +1065,8 @@ int main() {
 
 	bnch_swt::benchmark_suite<"Find Test">::benchmark<"glz::detail::permission_overwrite: ", "steelblue", 1000>([&] {
 		for (uint64_t x = 0; x < 1024; ++x) {
-			for (uint64_t y = 0; y < std::size(arrayNewer01); ++y) {
-				auto newString = glazeMapNew01.find(arrayNewer01[y].first);
+			for (uint64_t y = 0; y < std::size(arrayNew01); ++y) {
+				auto newString = glazeMapNew01.find(arrayNew01[y].first);
 				bnch_swt::doNotOptimizeAway(newString);
 			}
 		}
@@ -972,8 +1075,8 @@ int main() {
 
 	bnch_swt::benchmark_suite<"Find Test">::benchmark<"jsonifier_internal::permission_overwrite: ", "steelblue", 1000>([&] {
 		for (uint64_t x = 0; x < 1024; ++x) {
-			for (uint64_t y = 0; y < std::size(arrayNewer01); ++y) {
-				auto newString = jsonifierMapNew01.find(arrayNewer01[y].first);
+			for (uint64_t y = 0; y < std::size(arrayNew01); ++y) {
+				auto newString = jsonifierMapNew01.find(arrayNew01[y].first);
 				bnch_swt::doNotOptimizeAway(newString);
 			}
 		}
@@ -982,8 +1085,8 @@ int main() {
 
 	bnch_swt::benchmark_suite<"Find Test">::benchmark<"glz::detail::channel_data: ", "steelblue", 1000>([&] {
 		for (uint64_t x = 0; x < 1024; ++x) {
-			for (uint64_t y = 0; y < std::size(arrayNewer02); ++y) {
-				auto newString = glazeMapNew02.find(arrayNewer02[y].first);
+			for (uint64_t y = 0; y < std::size(arrayNew02); ++y) {
+				auto newString = glazeMapNew02.find(arrayNew02[y].first);
 				bnch_swt::doNotOptimizeAway(newString);
 			}
 		}
@@ -992,8 +1095,8 @@ int main() {
 
 	bnch_swt::benchmark_suite<"Find Test">::benchmark<"jsonifier_internal::channel_data: ", "steelblue", 1000>([&] {
 		for (uint64_t x = 0; x < 1024; ++x) {
-			for (uint64_t y = 0; y < std::size(arrayNewer02); ++y) {
-				auto newString = jsonifierMapNew02.find(arrayNewer02[y].first);
+			for (uint64_t y = 0; y < std::size(arrayNew02); ++y) {
+				auto newString = jsonifierMapNew02.find(arrayNew02[y].first);
 				bnch_swt::doNotOptimizeAway(newString);
 			}
 		}
@@ -1002,8 +1105,8 @@ int main() {
 
 	bnch_swt::benchmark_suite<"Find Test">::benchmark<"glz::detail::user_data: ", "steelblue", 1000>([&] {
 		for (uint64_t x = 0; x < 1024; ++x) {
-			for (uint64_t y = 0; y < std::size(arrayNewer03); ++y) {
-				auto newString = glazeMapNew03.find(arrayNewer03[y].first);
+			for (uint64_t y = 0; y < std::size(arrayNew03); ++y) {
+				auto newString = glazeMapNew03.find(arrayNew03[y].first);
 				bnch_swt::doNotOptimizeAway(newString);
 			}
 		}
@@ -1012,8 +1115,8 @@ int main() {
 
 	bnch_swt::benchmark_suite<"Find Test">::benchmark<"jsonifier_internal::user_data: ", "steelblue", 1000>([&] {
 		for (uint64_t x = 0; x < 1024; ++x) {
-			for (uint64_t y = 0; y < std::size(arrayNewer03); ++y) {
-				auto newString = jsonifierMapNew03.find(arrayNewer03[y].first);
+			for (uint64_t y = 0; y < std::size(arrayNew03); ++y) {
+				auto newString = jsonifierMapNew03.find(arrayNew03[y].first);
 				bnch_swt::doNotOptimizeAway(newString);
 			}
 		}
@@ -1022,8 +1125,8 @@ int main() {
 
 	bnch_swt::benchmark_suite<"Find Test">::benchmark<"glz::detail::member_data: ", "steelblue", 1000>([&] {
 		for (uint64_t x = 0; x < 1024; ++x) {
-			for (uint64_t y = 0; y < std::size(arrayNewer04); ++y) {
-				auto newString = glazeMapNew04.find(arrayNewer04[y].first);
+			for (uint64_t y = 0; y < std::size(arrayNew04); ++y) {
+				auto newString = glazeMapNew04.find(arrayNew04[y].first);
 				bnch_swt::doNotOptimizeAway(newString);
 			}
 		}
@@ -1032,8 +1135,8 @@ int main() {
 
 	bnch_swt::benchmark_suite<"Find Test">::benchmark<"jsonifier_internal::member_data: ", "steelblue", 1000>([&] {
 		for (uint64_t x = 0; x < 1024; ++x) {
-			for (uint64_t y = 0; y < std::size(arrayNewer04); ++y) {
-				auto newString = jsonifierMapNew04.find(arrayNewer04[y].first);
+			for (uint64_t y = 0; y < std::size(arrayNew04); ++y) {
+				auto newString = jsonifierMapNew04.find(arrayNew04[y].first);
 				bnch_swt::doNotOptimizeAway(newString);
 			}
 		}
@@ -1042,8 +1145,8 @@ int main() {
 
 	bnch_swt::benchmark_suite<"Find Test">::benchmark<"glz::detail::tags_data: ", "steelblue", 1000>([&] {
 		for (uint64_t x = 0; x < 1024; ++x) {
-			for (uint64_t y = 0; y < std::size(arrayNewer05); ++y) {
-				auto newString = glazeMapNew05.find(arrayNewer05[y].first);
+			for (uint64_t y = 0; y < std::size(arrayNew05); ++y) {
+				auto newString = glazeMapNew05.find(arrayNew05[y].first);
 				bnch_swt::doNotOptimizeAway(newString);
 			}
 		}
@@ -1052,8 +1155,8 @@ int main() {
 
 	bnch_swt::benchmark_suite<"Find Test">::benchmark<"jsonifier_internal::tags_data: ", "steelblue", 1000>([&] {
 		for (uint64_t x = 0; x < 1024; ++x) {
-			for (uint64_t y = 0; y < std::size(arrayNewer05); ++y) {
-				auto newString = jsonifierMapNew05.find(arrayNewer05[y].first);
+			for (uint64_t y = 0; y < std::size(arrayNew05); ++y) {
+				auto newString = jsonifierMapNew05.find(arrayNew05[y].first);
 				bnch_swt::doNotOptimizeAway(newString);
 			}
 		}
@@ -1062,8 +1165,8 @@ int main() {
 
 	bnch_swt::benchmark_suite<"Find Test">::benchmark<"glz::detail::role_data: ", "steelblue", 1000>([&] {
 		for (uint64_t x = 0; x < 1024; ++x) {
-			for (uint64_t y = 0; y < std::size(arrayNewer06); ++y) {
-				auto newString = glazeMapNew06.find(arrayNewer06[y].first);
+			for (uint64_t y = 0; y < std::size(arrayNew06); ++y) {
+				auto newString = glazeMapNew06.find(arrayNew06[y].first);
 				bnch_swt::doNotOptimizeAway(newString);
 			}
 		}
@@ -1072,18 +1175,18 @@ int main() {
 
 	bnch_swt::benchmark_suite<"Find Test">::benchmark<"jsonifier_internal::role_data: ", "steelblue", 1000>([&] {
 		for (uint64_t x = 0; x < 1024; ++x) {
-			for (uint64_t y = 0; y < std::size(arrayNewer06); ++y) {
-				auto newString = jsonifierMapNew06.find(arrayNewer06[y].first);
+			for (uint64_t y = 0; y < std::size(arrayNew06); ++y) {
+				auto newString = jsonifierMapNew06.find(arrayNew06[y].first);
 				bnch_swt::doNotOptimizeAway(newString);
 			}
 		}
 		return;
 	});
-
+	/*
 	bnch_swt::benchmark_suite<"Find Test">::benchmark<"glz::detail::guild_data: ", "steelblue", 1000>([&] {
 		for (uint64_t x = 0; x < 1024; ++x) {
-			for (uint64_t y = 0; y < std::size(arrayNewer07); ++y) {
-				auto newString = glazeMapNew07.find(arrayNewer07[y].first);
+			for (uint64_t y = 0; y < std::size(arrayNew07); ++y) {
+				auto newString = glazeMapNew07.find(arrayNew07[y].first);
 				bnch_swt::doNotOptimizeAway(newString);
 			}
 		}
@@ -1092,18 +1195,20 @@ int main() {
 
 	bnch_swt::benchmark_suite<"Find Test">::benchmark<"jsonifier_internal::guild_data: ", "steelblue", 1000>([&] {
 		for (uint64_t x = 0; x < 1024; ++x) {
-			for (uint64_t y = 0; y < std::size(arrayNewer07); ++y) {
-				auto newString = jsonifierMapNew07.find(arrayNewer07[y].first);
+			for (uint64_t y = 0; y < std::size(arrayNew07); ++y) {
+				auto newString = jsonifierMapNew07.find(arrayNew07[y].first);
 				bnch_swt::doNotOptimizeAway(newString);
 			}
 		}
 		return;
 	});
-	
+	*/
 	minifiedReal.saveFile(newString02.operator std::string());
 	parser02.validateJson(newString02);
 	//serializedSecond.saveFile(parser02.serializeJson(dataNew02).operator std::string());
 	bnch_swt::benchmark_suite<"Find Test">::writeJsonData("../../test.json");
+	bnch_swt::benchmark_suite<"Bool Test">::writeJsonData("../../test.json");
+	bnch_swt::benchmark_suite<"Null Test">::writeJsonData("../../test.json");
 	/*
 	for (uint64_t x = 0; x < newString03.size(); ++x) {
 		if (newString03[x] != newString04[x]) {

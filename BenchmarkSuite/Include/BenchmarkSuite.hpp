@@ -65,6 +65,10 @@ namespace bnch_swt {
 			return values;
 		}
 
+		constexpr auto size() const {
+			return length;
+		}
+
 		constexpr operator jsonifier::string_view() const {
 			return { values, sizeVal };
 		}

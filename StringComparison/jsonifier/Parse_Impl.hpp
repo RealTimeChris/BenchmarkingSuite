@@ -94,7 +94,7 @@ namespace jsonifier_internal {
 								using member_type = jsonifier::concepts::unwrap_t<decltype(getMember(value, memberPtr))>;
 								parse_impl<derived_type, member_type>::template impl<options>(getMember(value, memberPtr), iter, end);
 							},
-							memberIt->second);
+							*memberIt);
 
 					} else [[unlikely]] {
 						skipToNextValue(iter, end);

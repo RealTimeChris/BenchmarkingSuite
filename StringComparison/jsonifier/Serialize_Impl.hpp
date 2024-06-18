@@ -73,7 +73,7 @@ namespace jsonifier_internal {
 					using member_type = jsonifier::concepts::unwrap_t<decltype(newMember)>;
 					serialize_impl<options, derived_type, member_type>::impl(newMember, buffer, index);
 				},
-				std::move(memberIt->second));
+				std::move(*memberIt));
 
 
 			if constexpr (indexNew != n - 1) {
