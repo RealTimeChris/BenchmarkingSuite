@@ -23,20 +23,21 @@
 /// Feb 20, 2023
 #pragma once
 
-#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/JsonStructuralIterator.hpp"
-#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/Error.hpp"
-#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/ISADetection.hpp"
+#include <jsonifier/JsonStructuralIterator.hpp>
+#include <jsonifier/Error.hpp>
+#include <jsonifier/Config.hpp>
 
 namespace jsonifier_internal {
 
-	template<simd_structural_iterator_t iterator_type> JSONIFIER_INLINE void skipNumber(iterator_type& iter, iterator_type& end) noexcept {
+	template<simd_structural_iterator_t iterator_type> JSONIFIER_INLINE void skipNumber(iterator_type& iter, iterator_type&) noexcept {
 		++iter;
 	}
 
-	template<typename iterator_type> JSONIFIER_INLINE void skipWs(iterator_type& iter) noexcept {
-		while (whitespaceTable[*iter]) {
+	template<typename iterator_type> JSONIFIER_INLINE iterator_type skipWs(iterator_type iter) noexcept {
+		while (whitespaceTable[static_cast<uint8_t>(*iter)]) {
 			++iter;
 		}
+		return iter;
 	}
 
 	template<simd_structural_iterator_t iterator_type> JSONIFIER_INLINE void skipToEndOfValue(iterator_type& iter, iterator_type& end) {
@@ -105,10 +106,10 @@ namespace jsonifier_internal {
 				skipNumber(iter, end);
 				break;
 			}
-			[[likely]] default: {
-				++iter;
-				break;
-			}
+				[[likely]] default : {
+					++iter;
+					break;
+				}
 		}
 	}
 
@@ -163,10 +164,10 @@ namespace jsonifier_internal {
 				++iter;
 				break;
 			}
-			[[likely]] default: {
-				++iter;
-				break;
-			}
+				[[likely]] default : {
+					++iter;
+					break;
+				}
 		}
 	}
 
@@ -297,10 +298,69 @@ namespace jsonifier_internal {
 				skipNumber(iter, end);
 				break;
 			}
-			[[likely]] default: {
+				[[likely]] default : {
+					++iter;
+					break;
+				}
+		}
+	}
+
+	template<typename iterator_type> JSONIFIER_INLINE void skipToNextValue(iterator_type& iter, iterator_type& end) {
+		switch (*iter) {
+			[[unlikely]] case '{':
+			[[unlikely]] case '[': {
+				skipToEndOfValue(iter, end);
+				break;
+			}
+			[[unlikely]] case '"': {
+				skipString(iter, end);
+				break;
+			}
+			[[unlikely]] case ':': {
+				++iter;
+				skipToNextValue(iter, end);
+				break;
+			}
+			[[unlikely]] case ',': {
+				++iter;
+				skipToNextValue(iter, end);
+				break;
+			}
+			[[unlikely]] case '\\': {
+				++iter;
 				++iter;
 				break;
 			}
+			[[unlikely]] case 't': {
+				iter += 4;
+				break;
+			}
+			[[unlikely]] case 'f': {
+				iter += 5;
+				break;
+			}
+			[[unlikely]] case 'n': {
+				iter += 4;
+				break;
+			}
+			[[unlikely]] case '0':
+			[[unlikely]] case '1':
+			[[unlikely]] case '2':
+			[[unlikely]] case '3':
+			[[unlikely]] case '4':
+			[[unlikely]] case '5':
+			[[unlikely]] case '6':
+			[[unlikely]] case '7':
+			[[unlikely]] case '8':
+			[[unlikely]] case '9':
+			[[unlikely]] case '-': {
+				skipNumber(iter, end);
+				break;
+			}
+				[[likely]] default : {
+					++iter;
+					break;
+				}
 		}
 	}
 
@@ -362,10 +422,10 @@ namespace jsonifier_internal {
 					skipNumber(iter, end);
 					break;
 				}
-				[[likely]] default: {
-					++iter;
-					break;
-				}
+					[[likely]] default : {
+						++iter;
+						break;
+					}
 			}
 		}
 		return currentCount;
@@ -377,10 +437,10 @@ namespace jsonifier_internal {
 		uint32_t maxLength{};
 	};
 
-	template<key_stats_t stats> [[nodiscard]] JSONIFIER_INLINE jsonifier::string_view parseKeyCx(auto& iter) noexcept {
-		static constexpr auto lengthRange{ stats.lengthRange };
+	template<key_stats_t stats, typename iterator_type> [[nodiscard]] JSONIFIER_INLINE jsonifier::string_view parseKeyCx(iterator_type&& iter) noexcept {
+		static constexpr auto lengthRange = stats.lengthRange;
 
-		auto start{ iter };
+		auto start = iter;
 
 		iter += stats.minLength;
 
@@ -399,34 +459,28 @@ namespace jsonifier_internal {
 			}
 			return { start, size_t(iter - start) };
 		} else {
-			memchar<'"'>(iter, stats.maxLength + stats.lengthRange);
-			if (!iter) {
-				iter = start;
+			memchar<'"'>(iter, stats.maxLength + stats.minLength);
+			if (*iter != '"') {
+				++iter;
 			}
-			return { start, size_t(iter - start) };
+			jsonifier::string_view newKey{ start, size_t(iter - start) };
+			return newKey;
 		}
 	}
 
-	template<size_t I, class value_type> static constexpr auto keyName = [] {
-		using V = std::decay_t<value_type>;
-		return get<0>(get<I>(jsonifier::concepts::core_v<V>));
-	}();
-
-	template<std::size_t N, class Func> constexpr void forEach(Func&& f) {
-		[&]<std::size_t... I>(std::index_sequence<I...>) constexpr {
-			(f(std::integral_constant<std::size_t, I>{}), ...);
-		}(std::make_index_sequence<N>{});
+	template<typename value_type, size_t I> constexpr jsonifier::string_view getKey() noexcept {
+		constexpr auto& first = std::get<0>(std::get<I>(jsonifier::concepts::core_v<value_type>));
+		using T0			  = jsonifier::concepts::unwrap_t<decltype(first)>;
+		if constexpr (std::is_member_pointer_v<T0>) {
+			return getName<first>();
+		} else {
+			return { first };
+		}
 	}
 
-	template<typename value_type> JSONIFIER_INLINE constexpr auto keyStats() {
-		key_stats_t stats{};
-
-		constexpr auto N{ std::tuple_size_v<jsonifier::concepts::core_t<value_type>> };
-
-		forEach<N>([&](auto I) {
-			using Element						 = std::tuple_element<I, value_type>;
-			constexpr jsonifier::string_view key = keyName<I, value_type>;
-
+	template<typename value_type, uint64_t index, uint64_t maxIndex> JSONIFIER_INLINE constexpr auto keyStatsHelper(key_stats_t stats) {
+		if constexpr (index < maxIndex) {
+			constexpr jsonifier::string_view key{ getKey<value_type, index>() };
 			const auto n{ key.size() };
 			if (n < stats.minLength) {
 				stats.minLength = n;
@@ -434,29 +488,39 @@ namespace jsonifier_internal {
 			if (n > stats.maxLength) {
 				stats.maxLength = n;
 			}
-		});
-
-		if constexpr (N > 0) {
-			stats.lengthRange = stats.maxLength - stats.minLength;
+			return keyStatsHelper<value_type, index + 1, maxIndex>(stats);
+		} else {
+			if (maxIndex > 0) {
+				stats.lengthRange = stats.maxLength - stats.minLength;
+			}
+			return stats;
 		}
+	}
 
-		return stats;
+	template<typename value_type> JSONIFIER_INLINE constexpr auto keyStats() {
+		constexpr auto N{ std::tuple_size_v<jsonifier::concepts::core_t<value_type>> };
+
+		return keyStatsHelper<value_type, 0, N>(key_stats_t{});
 	}
 
 	template<const auto& options, typename value_type, typename iterator_type>
 	JSONIFIER_INLINE jsonifier::string_view parseKey(iterator_type& iter, iterator_type& end, jsonifier::vector<error>& errors) {
-		if (*iter != '"') [[unlikely]] {
-			static constexpr auto sourceLocation{ std::source_location::current() };
-			errors.emplace_back(error::constructError<sourceLocation, error_classes::Parsing, parse_errors::Missing_String_Start>(iter - options.rootIter,
-				static_cast<uint64_t>(end - iter), options.rootIter));
-			return {};
-		} else {
+		if (*iter == '"') [[unlikely]] {
 			++iter;
+		} else {
+			static constexpr auto sourceLocation{ std::source_location::current() };
+			errors.emplace_back(
+				error::constructError<sourceLocation, error_classes::Parsing, parse_errors::Missing_String_Start>(iter - options.rootIter, end - iter, options.rootIter));
+			return {};
 		}
 		constexpr auto N{ std::tuple_size_v<jsonifier::concepts::core_t<value_type>> };
 
 		static constexpr auto stats{ keyStats<value_type>() };
-		if constexpr (N > 0) {
+		if constexpr (N == 1) {
+			static constexpr jsonifier::string_view key{ getKey<value_type, 0>() };
+			iter += key.size() + 1;
+			return key;
+		} else if constexpr (N > 0) {
 			if constexpr (stats.lengthRange < 24) {
 				if ((iter + stats.maxLength) < end) [[likely]] {
 					jsonifier::string_view newKey{ parseKeyCx<stats>(iter) };
@@ -482,75 +546,16 @@ namespace jsonifier_internal {
 	JSONIFIER_INLINE jsonifier::string_view parseKey(iterator_type& iter, iterator_type& end, jsonifier::vector<error>& errors) {
 		auto start{ iter.operator->() };
 
-		if (*iter != '"') [[unlikely]] {
-			static constexpr auto sourceLocation{ std::source_location::current() };
-			errors.emplace_back(error::constructError<sourceLocation, error_classes::Parsing, parse_errors::Missing_String_Start>(iter - options.rootIter,
-				static_cast<uint64_t>(end - iter), options.rootIter));
-			return {};
-		} else {
+		if (*iter == '"') [[unlikely]] {
 			++iter;
+		} else {
+			static constexpr auto sourceLocation{ std::source_location::current() };
+			errors.emplace_back(
+				error::constructError<sourceLocation, error_classes::Parsing, parse_errors::Missing_String_Start>(iter - options.rootIter, end - iter, options.rootIter));
+			return {};
 		}
 
 		return jsonifier::string_view{ start + 1, static_cast<uint64_t>(iter.operator->() - (start + 2)) };
-	}
-
-	template<typename iterator_type> JSONIFIER_INLINE void skipToNextValue(iterator_type& iter, iterator_type& end) {
-		switch (*iter) {
-			[[unlikely]] case '{':
-			[[unlikely]] case '[': {
-				skipToEndOfValue(iter, end);
-				break;
-			}
-			[[unlikely]] case '"': {
-				skipString(iter, end);
-				break;
-			}
-			[[unlikely]] case ':': {
-				++iter;
-				skipToNextValue(iter, end);
-				break;
-			}
-			[[unlikely]] case ',': {
-				++iter;
-				skipToNextValue(iter, end);
-				break;
-			}
-			[[unlikely]] case '\\': {
-				++iter;
-				++iter;
-				break;
-			}
-			[[unlikely]] case 't': {
-				iter += 4;
-				break;
-			}
-			[[unlikely]] case 'f': {
-				iter += 5;
-				break;
-			}
-			[[unlikely]] case 'n': {
-				iter += 4;
-				break;
-			}
-			[[unlikely]] case '0':
-			[[unlikely]] case '1':
-			[[unlikely]] case '2':
-			[[unlikely]] case '3':
-			[[unlikely]] case '4':
-			[[unlikely]] case '5':
-			[[unlikely]] case '6':
-			[[unlikely]] case '7':
-			[[unlikely]] case '8':
-			[[unlikely]] case '9':
-			[[unlikely]] case '-': {
-				skipNumber(iter, end);
-				break;
-			}
-			[[likely]] default: {
-				++iter;
-				break;
-			}
-		}
 	}
 
 }

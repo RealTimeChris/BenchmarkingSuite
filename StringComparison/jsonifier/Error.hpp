@@ -125,7 +125,7 @@ namespace jsonifier_internal {
 
 	class error {
 	  public:
-		JSONIFIER_INLINE error(std::source_location sourceLocation, error_classes errorClassNew, int64_t errorIndexNew, int64_t stringLengthNew, string_view_ptr stringViewNew,
+		JSONIFIER_INLINE error(std::source_location sourceLocation, error_classes errorClassNew, int64_t errorIndexNew, int64_t stringLengthNew, const char* stringViewNew,
 			uint64_t typeNew) noexcept {
 			stringLength = static_cast<uint64_t>(stringLengthNew);
 			errorIndex	 = static_cast<uint64_t>(errorIndexNew);
@@ -139,7 +139,7 @@ namespace jsonifier_internal {
 		}
 
 		template<const std::source_location& sourceLocation, error_classes errorClassNew, auto typeNew>
-		JSONIFIER_INLINE static error constructError(int64_t errorIndexNew, int64_t stringLengthNew, string_view_ptr stringViewNew) {
+		JSONIFIER_INLINE static error constructError(int64_t errorIndexNew, int64_t stringLengthNew, const char* stringViewNew) {
 			return { sourceLocation, errorClassNew, errorIndexNew, stringLengthNew, stringViewNew, static_cast<uint64_t>(typeNew) };
 		}
 
@@ -156,7 +156,7 @@ namespace jsonifier_internal {
 				return;
 			}
 
-			using V = std::decay_t<decltype(errorString[0])>;
+			using V = jsonifier::concepts::unwrap_t<decltype(errorString[0])>;
 
 			const auto start	   = std::begin(errorString) + static_cast<int64_t>(errorIndex);
 			line				   = static_cast<uint64_t>(std::count(std::begin(errorString), start, static_cast<V>('\n')) + 1ll);

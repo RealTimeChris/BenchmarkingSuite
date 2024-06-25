@@ -23,23 +23,23 @@
 /// Feb 3, 2023
 #pragma once
 
-#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/ISADetection.hpp"
+#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/Config.hpp"
 
 namespace jsonifier_internal {
 
-	template<auto repeat, jsonifier::concepts::uint16_type return_type> constexpr return_type repeatByte() {
+	template<const uint8_t repeat, jsonifier::concepts::uint16_type return_type> constexpr return_type repeatByte() {
 		return 0x0101ull * repeat;
 	}
 
-	template<auto repeat, jsonifier::concepts::uint32_type return_type> constexpr return_type repeatByte() {
+	template<const uint8_t repeat, jsonifier::concepts::uint32_type return_type> constexpr return_type repeatByte() {
 		return 0x01010101ull * repeat;
 	}
 
-	template<auto repeat, jsonifier::concepts::uint64_type return_type> constexpr return_type repeatByte() {
+	template<const uint8_t repeat, jsonifier::concepts::uint64_type return_type> constexpr return_type repeatByte() {
 		return 0x0101010101010101ull * repeat;
 	}
 
-	template<auto value> JSONIFIER_INLINE void memchar(string_view_ptr& data, size_t lengthNew) {
+	template<auto value> JSONIFIER_INLINE void memchar(const char*& data, size_t lengthNew) {
 #if JSONIFIER_CHECK_FOR_AVX(JSONIFIER_AVX512)
 		{
 			using simd_type						 = typename jsonifier::concepts::get_type_at_index<simd_internal::avx_list, 2>::type::type;
@@ -96,15 +96,15 @@ namespace jsonifier_internal {
 		{
 			static constexpr uint64_t mask64  = repeatByte<0b01111111, uint64_t>();
 			static constexpr uint64_t value64 = repeatByte<value, uint64_t>();
-			uint64_t simdValue, newValue, next;
+			static constexpr uint64_t hiBit	  = repeatByte<0b10000000, uint64_t>();
+			uint64_t simdValue, lo7, quote, t0, next;
 			while (lengthNew >= 8) {
 				std::memcpy(&simdValue, data, sizeof(uint64_t));
 
-				newValue					= simdValue & mask64;
-				newValue					= (newValue ^ value64) + mask64;
-				newValue					= ~(newValue | simdValue);
-				static constexpr auto hiBit = repeatByte<0b10000000, uint64_t>();
-				next						= simd_internal::tzcnt(static_cast<uint64_t>(newValue & hiBit)) >> 3u;
+				lo7	  = simdValue & mask64;
+				quote = (lo7 ^ value64) + mask64;
+				t0	  = ~(quote | simdValue);
+				next  = simd_internal::tzcnt(static_cast<uint64_t>(t0 & hiBit)) >> 3u;
 
 				if (next != 8) {
 					data += next;
@@ -118,15 +118,15 @@ namespace jsonifier_internal {
 		{
 			static constexpr uint32_t mask32  = repeatByte<0b01111111, uint32_t>();
 			static constexpr uint32_t value32 = repeatByte<value, uint32_t>();
-			uint32_t simdValue, newValue, next;
+			static constexpr uint32_t hiBit	  = repeatByte<0b10000000, uint32_t>();
+			uint32_t simdValue, lo7, quote, t0, next;
 			if (lengthNew >= 4) {
 				std::memcpy(&simdValue, data, sizeof(uint32_t));
 
-				newValue					= simdValue & mask32;
-				newValue					= (newValue ^ value32) + mask32;
-				newValue					= ~(newValue | simdValue);
-				static constexpr auto hiBit = repeatByte<0b10000000, uint32_t>();
-				next						= simd_internal::tzcnt(static_cast<uint32_t>(newValue & hiBit)) >> 3u;
+				lo7	  = simdValue & mask32;
+				quote = (lo7 ^ value32) + mask32;
+				t0	  = ~(quote | simdValue);
+				next  = simd_internal::tzcnt(static_cast<uint32_t>(t0 & hiBit)) >> 3u;
 
 				if (next != 4) {
 					data += next;
@@ -140,15 +140,15 @@ namespace jsonifier_internal {
 		{
 			static constexpr uint16_t mask16  = repeatByte<0b01111111, uint16_t>();
 			static constexpr uint16_t value16 = repeatByte<value, uint16_t>();
-			uint16_t simdValue, newValue, next;
+			static constexpr uint16_t hiBit	  = repeatByte<0b10000000, uint16_t>();
+			uint16_t simdValue, lo7, quote, t0, next;
 			if (lengthNew >= 2) {
 				std::memcpy(&simdValue, data, sizeof(uint16_t));
 
-				newValue					= simdValue & mask16;
-				newValue					= (newValue ^ value16) + mask16;
-				newValue					= ~(newValue | simdValue);
-				static constexpr auto hiBit = repeatByte<0b10000000, uint16_t>();
-				next						= simd_internal::tzcnt(static_cast<uint16_t>(newValue & hiBit)) >> 3u;
+				lo7	  = static_cast<uint16_t>(simdValue & mask16);
+				quote = static_cast<uint16_t>((lo7 ^ value16) + mask16);
+				t0	  = static_cast<uint16_t>(~(quote | simdValue));
+				next  = static_cast<uint16_t>(simd_internal::tzcnt(static_cast<uint16_t>(t0 & hiBit)) >> 3u);
 
 				if (next != 2) {
 					data += next;
@@ -167,13 +167,12 @@ namespace jsonifier_internal {
 		data = nullptr;
 	}
 
-	JSONIFIER_INLINE bool compare(string_view_ptr lhs, string_view_ptr rhs, uint64_t lengthNew) {
+	template<typename char_type01, typename char_type02> JSONIFIER_INLINE bool compare(char_type01* lhs, char_type02* rhs, uint64_t lengthNew) {
 #if JSONIFIER_CHECK_FOR_AVX(JSONIFIER_AVX512)
 		{
 			using simd_type						 = typename jsonifier::concepts::get_type_at_index<simd_internal::avx_list, 2>::type::type;
 			static constexpr uint64_t vectorSize = jsonifier::concepts::get_type_at_index<simd_internal::avx_list, 2>::type::bytesProcessed;
-			simd_type value01;
-			simd_type value02;
+			simd_type value01, value02;
 			while (lengthNew >= vectorSize) {
 				value01 = simd_internal::gatherValuesU<simd_type>(lhs);
 				value02 = simd_internal::gatherValuesU<simd_type>(rhs);
@@ -191,8 +190,7 @@ namespace jsonifier_internal {
 		{
 			using simd_type						 = typename jsonifier::concepts::get_type_at_index<simd_internal::avx_list, 1>::type::type;
 			static constexpr uint64_t vectorSize = jsonifier::concepts::get_type_at_index<simd_internal::avx_list, 1>::type::bytesProcessed;
-			simd_type value01;
-			simd_type value02;
+			simd_type value01, value02;
 			while (lengthNew >= vectorSize) {
 				value01 = simd_internal::gatherValuesU<simd_type>(lhs);
 				value02 = simd_internal::gatherValuesU<simd_type>(rhs);
@@ -210,8 +208,7 @@ namespace jsonifier_internal {
 		{
 			using simd_type						 = typename jsonifier::concepts::get_type_at_index<simd_internal::avx_list, 0>::type::type;
 			static constexpr uint64_t vectorSize = jsonifier::concepts::get_type_at_index<simd_internal::avx_list, 0>::type::bytesProcessed;
-			simd_type value01;
-			simd_type value02;
+			simd_type value01, value02;
 			while (lengthNew >= vectorSize) {
 				value01 = simd_internal::gatherValuesU<simd_type>(lhs);
 				value02 = simd_internal::gatherValuesU<simd_type>(rhs);
@@ -226,53 +223,53 @@ namespace jsonifier_internal {
 #endif
 
 		if (lengthNew > 7) {
-			static constexpr uint64_t size{ sizeof(uint64_t) };
+			static constexpr uint64_t n{ sizeof(uint64_t) };
 			uint64_t v[2];
-			while (lengthNew > size) {
-				std::memcpy(v, lhs, size);
-				std::memcpy(v + 1, rhs, size);
+			while (lengthNew > n) {
+				std::memcpy(v, lhs, n);
+				std::memcpy(v + 1, rhs, n);
 				if (v[0] != v[1]) {
 					return false;
 				}
-				lengthNew -= size;
-				lhs += size;
-				rhs += size;
+				lengthNew -= n;
+				lhs += n;
+				rhs += n;
 			}
 
-			auto shift = size - lengthNew;
+			auto shift = n - lengthNew;
 			lhs -= shift;
 			rhs -= shift;
 
-			std::memcpy(v, lhs, size);
-			std::memcpy(v + 1, rhs, size);
+			std::memcpy(v, lhs, n);
+			std::memcpy(v + 1, rhs, n);
 			return v[0] == v[1];
 		}
 		{
-			static constexpr uint64_t size{ sizeof(uint32_t) };
-			if (lengthNew >= size) {
+			static constexpr uint64_t n{ sizeof(uint32_t) };
+			if (lengthNew >= n) {
 				uint32_t v[2];
-				std::memcpy(v, lhs, size);
-				std::memcpy(v + 1, rhs, size);
+				std::memcpy(v, lhs, n);
+				std::memcpy(v + 1, rhs, n);
 				if (v[0] != v[1]) {
 					return false;
 				}
-				lengthNew -= size;
-				lhs += size;
-				rhs += size;
+				lengthNew -= n;
+				lhs += n;
+				rhs += n;
 			}
 		}
 		{
-			static constexpr uint64_t size{ sizeof(uint16_t) };
-			if (lengthNew >= size) {
+			static constexpr uint64_t n{ sizeof(uint16_t) };
+			if (lengthNew >= n) {
 				uint16_t v[2];
-				std::memcpy(v, lhs, size);
-				std::memcpy(v + 1, rhs, size);
+				std::memcpy(v, lhs, n);
+				std::memcpy(v + 1, rhs, n);
 				if (v[0] != v[1]) {
 					return false;
 				}
-				lengthNew -= size;
-				lhs += size;
-				rhs += size;
+				lengthNew -= n;
+				lhs += n;
+				rhs += n;
 			}
 		}
 		if (lengthNew && *lhs != *rhs) {
@@ -281,54 +278,54 @@ namespace jsonifier_internal {
 		return true;
 	}
 
-	template<uint64_t Count, typename char_type> inline bool compare(const char_type* lhs, const char_type* rhs) noexcept {
-		if constexpr (Count > 8) {
-			auto count{ Count };
+	template<uint64_t count, class char_type> constexpr bool compare(const char_type* lhs, const char_type* rhs) noexcept {
+		if constexpr (count > 8) {
+			uint64_t countNew{ count };
 			uint64_t v[2];
-			while (count > 8) {
+			while (countNew > 8) {
 				std::memcpy(v, lhs, 8);
 				std::memcpy(v + 1, rhs, 8);
 				if (v[0] != v[1]) {
 					return false;
 				}
-				count -= 8;
+				countNew -= 8;
 				lhs += 8;
 				rhs += 8;
 			}
 
-			const auto shift = 8 - count;
+			const auto shift = 8 - countNew;
 			lhs -= shift;
 			rhs -= shift;
 
 			std::memcpy(v, lhs, 8);
 			std::memcpy(v + 1, rhs, 8);
 			return v[0] == v[1];
-		} else if constexpr (Count == 8) {
+		} else if constexpr (count == 8) {
 			uint64_t v[2];
-			std::memcpy(v, lhs, Count);
-			std::memcpy(v + 1, rhs, Count);
+			std::memcpy(v, lhs, count);
+			std::memcpy(v + 1, rhs, count);
 			return v[0] == v[1];
-		} else if constexpr (Count > 4) {
+		} else if constexpr (count > 4) {
 			uint64_t v[2]{};
-			std::memcpy(v, lhs, Count);
-			std::memcpy(v + 1, rhs, Count);
+			std::memcpy(v, lhs, count);
+			std::memcpy(v + 1, rhs, count);
 			return v[0] == v[1];
-		} else if constexpr (Count == 4) {
+		} else if constexpr (count == 4) {
 			uint32_t v[2];
-			std::memcpy(v, lhs, Count);
-			std::memcpy(v + 1, rhs, Count);
+			std::memcpy(v, lhs, count);
+			std::memcpy(v + 1, rhs, count);
 			return v[0] == v[1];
-		} else if constexpr (Count == 3) {
+		} else if constexpr (count == 3) {
 			uint32_t v[2]{};
-			std::memcpy(v, lhs, Count);
-			std::memcpy(v + 1, rhs, Count);
+			std::memcpy(v, lhs, count);
+			std::memcpy(v + 1, rhs, count);
 			return v[0] == v[1];
-		} else if constexpr (Count == 2) {
+		} else if constexpr (count == 2) {
 			uint16_t v[2];
-			std::memcpy(v, lhs, Count);
-			std::memcpy(v + 1, rhs, Count);
+			std::memcpy(v, lhs, count);
+			std::memcpy(v + 1, rhs, count);
 			return v[0] == v[1];
-		} else if constexpr (Count == 1) {
+		} else if constexpr (count == 1) {
 			return *lhs == *rhs;
 		} else {
 			return true;

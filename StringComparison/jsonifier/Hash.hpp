@@ -29,10 +29,10 @@
 #include <string>
 
 namespace jsonifier_internal {
-	
+
 	struct fnv1a_hash {
 		static constexpr uint64_t fnv64OffsetBasis = 0xcbf29ce484222325;
-		static constexpr uint64_t fnv64Prime	   = 0x100000001b3;
+		static constexpr uint64_t fnv64Prime	   = 0x00000100000001B3;
 
 		constexpr uint64_t operator()(string_view_ptr value, uint64_t storageSize, uint64_t seed) const {
 			for (uint64_t x = 0; x < storageSize; ++x) {

@@ -197,10 +197,10 @@ namespace jsonifier_internal {
 		}
 	}
 
-	template<uint64_t objectSize, auto& options, jsonifier::concepts::buffer_like buffer_type>
-	JSONIFIER_INLINE void writeObjectEntry(buffer_type& buffer, uint64_t& index, uint64_t& indent) {
+	template<uint64_t objectSize, auto& options, jsonifier::concepts::buffer_like buffer_type> JSONIFIER_INLINE void writeObjectEntry(buffer_type& buffer, uint64_t& index) {
 		if constexpr (options.optionsReal.prettify && objectSize > 0) {
-			++indent;
+			++options.indent;
+			auto indent		 = options.indent;
 			auto indentSize	 = options.optionsReal.indentSize;
 			auto indentTotal = indent * indentSize;
 			auto n			 = 3 + indentTotal;
@@ -223,10 +223,10 @@ namespace jsonifier_internal {
 		}
 	}
 
-	template<uint64_t objectSize, auto& options, jsonifier::concepts::buffer_like buffer_type>
-	JSONIFIER_INLINE void writeObjectExit(buffer_type& buffer, uint64_t& index, uint64_t& indent) {
+	template<uint64_t objectSize, auto& options, jsonifier::concepts::buffer_like buffer_type> JSONIFIER_INLINE void writeObjectExit(buffer_type& buffer, uint64_t& index) {
 		if constexpr (options.optionsReal.prettify && objectSize > 0) {
-			--indent;
+			--options.indent;
+			auto indent		 = options.indent;
 			auto indentSize	 = options.optionsReal.indentSize;
 			auto indentTotal = indent * indentSize;
 			auto n			 = 3 + indentTotal;
@@ -247,11 +247,11 @@ namespace jsonifier_internal {
 		++index;
 	}
 
-	template<auto& options, jsonifier::concepts::buffer_like buffer_type>
-	JSONIFIER_INLINE void writeObjectEntry(buffer_type& buffer, uint64_t& index, uint64_t size, uint64_t& indent) {
+	template<auto& options, jsonifier::concepts::buffer_like buffer_type> JSONIFIER_INLINE void writeObjectEntry(buffer_type& buffer, uint64_t& index, uint64_t size) {
 		if constexpr (options.optionsReal.prettify) {
 			if (size > 0) {
-				++indent;
+				++options.indent;
+				auto indent		 = options.indent;
 				auto indentSize	 = options.optionsReal.indentSize;
 				auto indentTotal = indent * indentSize;
 				auto n			 = 3 + indentTotal;
@@ -275,11 +275,11 @@ namespace jsonifier_internal {
 		++index;
 	}
 
-	template<auto& options, jsonifier::concepts::buffer_like buffer_type>
-	JSONIFIER_INLINE void writeObjectExit(buffer_type& buffer, uint64_t& index, uint64_t size, uint64_t& indent) {
+	template<auto& options, jsonifier::concepts::buffer_like buffer_type> JSONIFIER_INLINE void writeObjectExit(buffer_type& buffer, uint64_t& index, uint64_t size) {
 		if constexpr (options.optionsReal.prettify) {
 			if (size > 0) {
-				--indent;
+				--options.indent;
+				auto indent		 = options.indent;
 				auto indentSize	 = options.optionsReal.indentSize;
 				auto indentTotal = indent * indentSize;
 				auto n			 = 3 + indentTotal;
@@ -303,11 +303,11 @@ namespace jsonifier_internal {
 		++index;
 	}
 
-	template<auto& options, jsonifier::concepts::buffer_like buffer_type>
-	JSONIFIER_INLINE void writeArrayEntry(buffer_type& buffer, uint64_t& index, uint64_t size, uint64_t& indent) {
+	template<auto& options, jsonifier::concepts::buffer_like buffer_type> JSONIFIER_INLINE void writeArrayEntry(buffer_type& buffer, uint64_t& index, uint64_t size) {
 		if constexpr (options.optionsReal.prettify) {
 			if (size > 0) {
-				++indent;
+				++options.indent;
+				auto indent		 = options.indent;
 				auto indentSize	 = options.optionsReal.indentSize;
 				auto indentTotal = indent * indentSize;
 				auto n			 = 3 + indentTotal;
@@ -331,11 +331,11 @@ namespace jsonifier_internal {
 		++index;
 	}
 
-	template<auto& options, jsonifier::concepts::buffer_like buffer_type>
-	JSONIFIER_INLINE void writeArrayExit(buffer_type& buffer, uint64_t& index, uint64_t size, uint64_t& indent) {
+	template<auto& options, jsonifier::concepts::buffer_like buffer_type> JSONIFIER_INLINE void writeArrayExit(buffer_type& buffer, uint64_t& index, uint64_t size) {
 		if constexpr (options.optionsReal.prettify) {
 			if (size > 0) {
-				--indent;
+				--options.indent;
+				auto indent		 = options.indent;
 				auto indentSize	 = options.optionsReal.indentSize;
 				auto indentTotal = indent * indentSize;
 				auto n			 = 3 + indentTotal;
@@ -366,9 +366,9 @@ namespace jsonifier_internal {
 		constexpr auto joined_arr = []() {
 			constexpr size_t len = (Strs.size() + ... + 0);
 			std::array<char, len + 1> arr{};
-			auto append = [i = 0, &arr](auto& s) mutable {
+			auto append = [x = 0ull, &arr](auto& s) mutable {
 				for (char c: s)
-					arr[i++] = c;
+					arr[x++] = c;
 			};
 			(append(Strs), ...);
 			arr[len] = 0;

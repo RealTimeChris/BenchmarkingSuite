@@ -39,8 +39,18 @@ namespace jsonifier_internal {
 
 	constexpr uint32_t minifyError{ std::numeric_limits<uint32_t>::max() };
 
+	template<typename derived_type> struct minify_impl;
+
+	template<typename derived_type> class minifier;
+
+	template<typename derived_type> struct minify_options_internal {
+		mutable minifier<derived_type>* minifierPtr{};
+	};
+
 	template<typename derived_type> class minifier {
 	  public:
+		template<typename derived_type_new> friend struct minify_impl;
+
 		JSONIFIER_INLINE minifier& operator=(const minifier& other) = delete;
 		JSONIFIER_INLINE minifier(const minifier& other)			= delete;
 
@@ -51,24 +61,23 @@ namespace jsonifier_internal {
 			derivedRef.index = 0;
 			derivedRef.errors.clear();
 			derivedRef.section.reset(in.data(), in.size());
-			json_structural_iterator iter{ derivedRef.section.begin(), derivedRef.section.end(), derivedRef.errors };
+			static constexpr minify_options_internal<derived_type> options{};
+			options.minifierPtr = this;
+			simd_structural_iterator iter{ derivedRef.section.begin(), derivedRef.section.end() };
 			if (!iter) {
 				static constexpr auto sourceLocation{ std::source_location::current() };
-				getErrors().emplace_back(error::constructError<sourceLocation, error_classes::Minifying, minify_errors::No_Input>(iter - iter.getRootPtr(),
-					iter.getEndPtr() - iter.getRootPtr(), iter.getRootPtr()));
-				derivedRef.index = 0;
+				getErrors().emplace_back(error::constructError<sourceLocation, error_classes::Minifying, minify_errors::No_Input>(static_cast<int64_t>(iter - iter.getRootPtr()),
+					static_cast<int64_t>(iter.getEndPtr() - iter.getRootPtr()), iter.getRootPtr()));
 				return jsonifier::concepts::unwrap_t<string_type>{};
 			}
 			jsonifier::concepts::unwrap_t<string_type> newString{};
-			impl(iter, derivedRef.stringBuffer, derivedRef.index);
+			minify_impl<derived_type>::template impl<options>(iter, derivedRef.stringBuffer, derivedRef.index);
 			if (derivedRef.index == minifyError) {
-				derivedRef.index = 0;
 				return newString;
 			} else {
 				newString.resize(derivedRef.index);
 				std::copy(derivedRef.stringBuffer.data(), derivedRef.stringBuffer.data() + derivedRef.index, newString.data());
 			}
-			derivedRef.index = 0;
 			return newString;
 		}
 
@@ -80,17 +89,17 @@ namespace jsonifier_internal {
 			derivedRef.index = 0;
 			derivedRef.errors.clear();
 			derivedRef.section.reset(in.data(), in.size());
-			json_structural_iterator iter{ derivedRef.section.begin(), derivedRef.section.end(), derivedRef.errors };
+			static constexpr minify_options_internal<derived_type> options{};
+			options.minifierPtr = this;
+			simd_structural_iterator iter{ derivedRef.section.begin(), derivedRef.section.end() };
 			if (!iter) {
 				static constexpr auto sourceLocation{ std::source_location::current() };
-				getErrors().emplace_back(error::constructError<sourceLocation, error_classes::Minifying, minify_errors::No_Input>(iter - iter.getRootPtr(),
-					iter.getEndPtr() - iter.getRootPtr(), iter.getRootPtr()));
-				derivedRef.index = 0;
+				getErrors().emplace_back(error::constructError<sourceLocation, error_classes::Minifying, minify_errors::No_Input>(static_cast<int64_t>(iter - iter.getRootPtr()),
+					static_cast<int64_t>(iter.getEndPtr() - iter.getRootPtr()), iter.getRootPtr()));
 				return false;
 			}
-			impl(iter, derivedRef.stringBuffer, derivedRef.index);
+			minify_impl<derived_type>::template impl<options>(iter, derivedRef.stringBuffer, derivedRef.index);
 			if (derivedRef.index == minifyError) {
-				derivedRef.index = 0;
 				return false;
 			} else {
 				if (out.size() != derivedRef.index) {
@@ -98,7 +107,6 @@ namespace jsonifier_internal {
 				}
 				std::copy(derivedRef.stringBuffer.data(), derivedRef.stringBuffer.data() + derivedRef.index, out.data());
 			}
-			derivedRef.index = 0;
 			return true;
 		}
 
@@ -110,8 +118,6 @@ namespace jsonifier_internal {
 		JSONIFIER_INLINE derived_type& initializeSelfRef() {
 			return *static_cast<derived_type*>(this);
 		}
-
-		template<jsonifier::concepts::string_t string_type, typename iterator_type> JSONIFIER_INLINE void impl(iterator_type& iter, string_type& out, uint64_t& index) noexcept;
 
 		JSONIFIER_INLINE jsonifier::vector<error>& getErrors() {
 			return derivedRef.errors;

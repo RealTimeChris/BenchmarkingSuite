@@ -25,12 +25,16 @@
 
 #include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/TypeEntities.hpp"
 #include <functional>
+#include <iostream>
+#include <sstream>
 #include <cassert>
 #include <cstring>
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib>
 #include <cfloat>
+#include <bitset>
+#include <atomic>
 #include <array>
 
 #if !defined(__GNUC__)
@@ -45,11 +49,7 @@
 	#pragma warning(disable : 5246)
 #endif
 
-#if defined(__clang__)
-	#define JSONIFIER_CLANG 1
-#elif defined(__GNUC__) && defined(__llvm__)
-	#define JSONIFIER_CLANG 1
-#elif defined(__APPLE__) && defined(__clang__)
+#if defined(__clang__) || (defined(__GNUC__) && defined(__llvm__)) || (defined(__APPLE__) && defined(__clang__))
 	#define JSONIFIER_CLANG 1
 #elif defined(_MSC_VER)
 	#define JSONIFIER_MSVC 1
@@ -120,9 +120,9 @@
 	#define JSONIFIER_ANY_AVX (JSONIFIER_AVX | JSONIFIER_AVX2 | JSONIFIER_AVX512)
 #endif
 
-#if defined(_MSC_VER)
+#if defined(JSONIFIER_MSVC)
 	#define JSONIFIER_VISUAL_STUDIO 1
-	#if defined(__clang__)
+	#if defined(JSONIFIER_CLANG)
 		#define JSONIFIER_CLANG_VISUAL_STUDIO 1
 	#else
 		#define JSONIFIER_REGULAR_VISUAL_STUDIO 1
@@ -145,48 +145,27 @@ using simd_int_512 = __m512i;
 
 	#if JSONIFIER_CHECK_FOR_INSTRUCTION(JSONIFIER_AVX512)
 using simd_int_t = __m512i;
-constexpr uint64_t BitsPerStep{ 512 };
+constexpr uint64_t bitsPerStep{ 512 };
 using string_parsing_type = uint64_t;
 	#elif JSONIFIER_CHECK_FOR_INSTRUCTION(JSONIFIER_AVX2)
 using simd_int_t = __m256i;
-constexpr uint64_t BitsPerStep{ 256 };
+constexpr uint64_t bitsPerStep{ 256 };
 using string_parsing_type = uint32_t;
 	#elif JSONIFIER_CHECK_FOR_INSTRUCTION(JSONIFIER_AVX)
 using simd_int_t = __m128i;
-constexpr uint64_t BitsPerStep{ 128 };
+constexpr uint64_t bitsPerStep{ 128 };
 using string_parsing_type = uint16_t;
 	#endif
 #elif JSONIFIER_CHECK_FOR_INSTRUCTION(JSONIFIER_NEON)
 
 	#include <arm_neon.h>
 
-	#if __CHAR_UNSIGNED__
-		#define CHAR_TYPE uint8_t
-		#define vreinterpretq_x8_x16 vreinterpretq_u8_u16
-		#define vdupq_n_x8 vdupq_n_u8
-		#define vld1q_x16 vld1q_u16
-		#define vpaddq_x8 vpaddq_u8
-		#define vld1q_x8 vld1q_u8
-		#define vceqq_x8 vceqq_u8
-		#define vst1q_x8 vst1q_u8
-	#else
-		#define CHAR_TYPE int8_t
-		#define vreinterpretq_x8_x16 vreinterpretq_s8_s16
-		#define vdupq_n_x8 vdupq_n_s8
-		#define vld1q_x16 vld1q_s16
-		#define vpaddq_x8 vpaddq_s8
-		#define vld1q_x8 vld1q_s8
-		#define vceqq_x8 vceqq_s8
-		#define vst1q_x8 vst1q_s8
-	#endif
-
-
 using simd_int_128 = uint8x16_t;
 using simd_int_256 = uint32_t;
 using simd_int_512 = uint64_t;
 
 using simd_int_t = uint8x16_t;
-constexpr uint64_t BitsPerStep{ 128 };
+constexpr uint64_t bitsPerStep{ 128 };
 using string_parsing_type = uint16_t;
 #else
 union __m128x {
@@ -215,13 +194,13 @@ using simd_int_256 = uint32_t;
 using simd_int_512 = uint64_t;
 
 using simd_int_t = __m128x;
-constexpr uint64_t BitsPerStep{ 128 };
+constexpr uint64_t bitsPerStep{ 128 };
 using string_parsing_type = uint16_t;
 #endif
 
-constexpr uint64_t bytesPerStep{ BitsPerStep / 8 };
-constexpr uint64_t sixtyFourBitsPerStep{ BitsPerStep / 64 };
-constexpr uint64_t StridesPerStep{ BitsPerStep / bytesPerStep };
+constexpr uint64_t bytesPerStep{ bitsPerStep / 8 };
+constexpr uint64_t sixtyFourBitsPerStep{ bitsPerStep / 64 };
+constexpr uint64_t stridesPerStep{ bitsPerStep / bytesPerStep };
 
 using string_view_ptr	= const char*;
 using structural_index	= const char*;
@@ -250,4 +229,128 @@ concept simd_int_type = std::is_same_v<simd_int_t, jsonifier::concepts::unwrap_t
 
 JSONIFIER_INLINE void prefetchInternal(const void* ptr) {
 	PREFETCH(ptr)
+}
+
+#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/ISA/AVX.hpp"
+#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/ISA/Lzcount.hpp"
+#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/ISA/Popcount.hpp"
+#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/ISA/Bmi2.hpp"
+#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/ISA/Bmi.hpp"
+#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/ISA/CollectIndices.hpp"
+#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/ISA/CompareValues.hpp"
+#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/ISA/Fallback.hpp"
+
+namespace jsonifier_internal {
+
+	template<typename value_type01, typename value_type02> constexpr value_type01 max(value_type01 value1, value_type02 value2) {
+		return value1 > static_cast<value_type01>(value2) ? value1 : static_cast<value_type01>(value2);
+	}
+
+	template<jsonifier::concepts::unsigned_type value_type> void printBits(value_type values, const std::string& valuesTitle) {
+		std::cout << valuesTitle;
+		std::cout << std::bitset<sizeof(value_type) * 8>{ values };
+		std::cout << std::endl;
+	}
+
+	template<simd_int_type simd_type> const simd_type& printBits(const simd_type& value, const std::string& valuesTitle) noexcept {
+		JSONIFIER_ALIGN uint8_t values[sizeof(simd_type)]{};
+		std::stringstream theStream{};
+		store(value, values);
+		std::cout << valuesTitle;
+		for (string_parsing_type x = 0; x < sizeof(simd_type); ++x) {
+			for (string_parsing_type y = 0; y < 8; ++y) {
+				std::cout << std::bitset<1>{ static_cast<uint64_t>(*(values + x)) >> y };
+			}
+		}
+		std::cout << std::endl;
+		return value;
+	}
+
+	JSONIFIER_INLINE std::string printBits(bool value) noexcept {
+		std::stringstream theStream{};
+		theStream << std::boolalpha << value << std::endl;
+		return theStream.str();
+	}
+
+	template<typename simd_type> JSONIFIER_INLINE std::string printBits(const simd_type& value) noexcept {
+		JSONIFIER_ALIGN uint8_t values[sizeof(simd_type)]{};
+		std::stringstream theStream{};
+		store(value, values);
+		for (uint64_t x = 0; x < bytesPerStep; ++x) {
+			for (uint64_t y = 0; y < 8; ++y) {
+				theStream << std::bitset<1>{ static_cast<uint64_t>(*(values + x)) >> y };
+			}
+		}
+		theStream << std::endl;
+		return theStream.str();
+	}
+
+	template<jsonifier::concepts::time_type value_type> class stop_watch {
+	  public:
+		using hr_clock = std::chrono::high_resolution_clock;
+
+		JSONIFIER_INLINE stop_watch(uint64_t newTime) {
+			totalNumberOfTimeUnits.store(value_type{ newTime }, std::memory_order_release);
+		}
+
+		JSONIFIER_INLINE stop_watch(value_type newTime) {
+			totalNumberOfTimeUnits.store(newTime, std::memory_order_release);
+		}
+
+		JSONIFIER_INLINE stop_watch& operator=(stop_watch&& other) {
+			if (this != &other) [[likely]] {
+				totalNumberOfTimeUnits.store(other.totalNumberOfTimeUnits.load(std::memory_order_acquire), std::memory_order_release);
+				startTimeInTimeUnits.store(other.startTimeInTimeUnits.load(std::memory_order_acquire), std::memory_order_release);
+			}
+			return *this;
+		}
+
+		JSONIFIER_INLINE stop_watch(stop_watch&& other) {
+			*this = std::move(other);
+		}
+
+		JSONIFIER_INLINE stop_watch& operator=(const stop_watch& other) {
+			if (this != &other) [[likely]] {
+				totalNumberOfTimeUnits.store(other.totalNumberOfTimeUnits.load(std::memory_order_acquire), std::memory_order_release);
+				startTimeInTimeUnits.store(other.startTimeInTimeUnits.load(std::memory_order_acquire), std::memory_order_release);
+			}
+			return *this;
+		}
+
+		JSONIFIER_INLINE stop_watch(const stop_watch& other) {
+			*this = other;
+		}
+
+		JSONIFIER_INLINE bool hasTimeElapsed() {
+			if (std::chrono::duration_cast<value_type>(hr_clock::now().time_since_epoch()) - startTimeInTimeUnits.load(std::memory_order_acquire) >=
+				totalNumberOfTimeUnits.load(std::memory_order_acquire)) [[likely]] {
+				return true;
+			} else {
+				return false;
+			}
+		}
+
+		JSONIFIER_INLINE void reset(value_type newTimeValue = value_type{}) {
+			if (newTimeValue != value_type{}) [[likely]] {
+				totalNumberOfTimeUnits.store(newTimeValue, std::memory_order_release);
+				startTimeInTimeUnits.store(std::chrono::duration_cast<value_type>(hr_clock::now().time_since_epoch()), std::memory_order_release);
+			} else {
+				startTimeInTimeUnits.store(std::chrono::duration_cast<value_type>(hr_clock::now().time_since_epoch()), std::memory_order_release);
+			}
+		}
+
+		JSONIFIER_INLINE value_type getTotalWaitTime() const {
+			return totalNumberOfTimeUnits.load(std::memory_order_acquire);
+		}
+
+		JSONIFIER_INLINE value_type totalTimeElapsed() {
+			return std::chrono::duration_cast<value_type>(hr_clock::now().time_since_epoch()) - startTimeInTimeUnits.load(std::memory_order_acquire);
+		}
+
+	  protected:
+		std::atomic<value_type> totalNumberOfTimeUnits{};
+		std::atomic<value_type> startTimeInTimeUnits{};
+	};
+
+	template<jsonifier::concepts::time_type value_type> stop_watch(value_type) -> stop_watch<value_type>;
 }

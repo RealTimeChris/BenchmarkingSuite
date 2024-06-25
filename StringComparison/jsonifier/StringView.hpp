@@ -150,7 +150,7 @@ namespace jsonifier {
 		}
 
 		template<typename... arg_types> constexpr size_type rfind(arg_types&&... args) const {
-			return this->operator std::basic_string_view<value_type>().rfind(std::forward<arg_types>(args)...);
+			return operator std::basic_string_view<value_type>().rfind(std::forward<arg_types>(args)...);
 		}
 
 		template<typename... arg_types> constexpr size_type find(arg_types&&... args) const {
@@ -224,8 +224,8 @@ namespace jsonifier {
 						}
 					}
 					return true;
-				};
-				return lhs.size() == rhs.size() && compareValues();
+				}();
+				return lhs.size() == rhs.size() && compareValues;
 			} else {
 				return rhs.size() == lhs.size() && jsonifier_internal::compare(lhs.data(), rhs.data(), rhs.size());
 			}
@@ -305,23 +305,8 @@ namespace jsonifier {
 		return oStream;
 	}
 
-	[[nodiscard]] constexpr string_view operator""_sv(string_view_ptr stringNew, size_t lengthNew) noexcept {
+	[[nodiscard]] constexpr string_view operator""_sv(const char* stringNew, size_t lengthNew) noexcept {
 		return string_view(stringNew, lengthNew);
 	}
 
 }// namespace jsonifier
-
-namespace jsonifier_internal {
-
-	template<typename value_type> struct hash;
-
-	template<typename value_type> struct hash<jsonifier::string_view_base<value_type>> : public fnv1a_hash {
-		constexpr uint64_t operator()(const jsonifier::string_view_base<value_type>& value, uint32_t seed) const {
-			if (std::is_constant_evaluated()) {
-				return fnv1a_hash::operator()(value, seed);
-			} else {
-				return fnv1a_hash::operator()(value.data(), value.size(), seed);
-			}
-		}
-	};
-}

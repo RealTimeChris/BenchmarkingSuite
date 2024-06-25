@@ -27,16 +27,12 @@
 
 namespace jsonifier_internal {
 
-	template<typename iterator_type> JSONIFIER_INLINE uint64_t getRemainingLength(iterator_type&& iter, iterator_type&& end) {
-		return end - iter;
-	}
-
 	template<typename derived_type> struct validate_impl<json_structural_type::Object_Start, derived_type> {
-		template<const validate_options_internal<derived_type>& options, typename iterator_type> static bool impl(iterator_type&& iter, iterator_type&& end, uint64_t& depth) {
+		template<typename validator_type, typename iterator_type> static bool impl(iterator_type&& iter, uint64_t& depth, validator_type& validatorRef) {
 			if (!iter || *iter != '{') {
 				static constexpr auto sourceLocation{ std::source_location::current() };
-				options.validatorPtr->getErrors().emplace_back(error::constructError<sourceLocation, error_classes::Validating, validate_errors::Missing_Object_Start>(
-					iter - iter.getRootPtr(), iter.getEndPtr() - iter.getRootPtr(), iter.getRootPtr()));
+				validatorRef.getErrors().emplace_back(error::constructError<sourceLocation, error_classes::Validating, validate_errors::Missing_Object_Start>(
+					iter - validatorRef.rootIter, iter.getEndPtr() - validatorRef.rootIter, validatorRef.rootIter));
 				return false;
 			}
 			++depth;
@@ -47,23 +43,23 @@ namespace jsonifier_internal {
 				return true;
 			}
 
-			while (iter != end) {
-				if (!validate_impl<json_structural_type::String, derived_type>::template impl<options>(iter, end)) {
+			while (iter) {
+				if (!validate_impl<json_structural_type::String, derived_type>::impl(iter, validatorRef)) {
 					static constexpr auto sourceLocation{ std::source_location::current() };
-					options.validatorPtr->getErrors().emplace_back(error::constructError<sourceLocation, error_classes::Validating, validate_errors::Invalid_String_Characters>(
-						iter - iter.getRootPtr(), iter.getEndPtr() - iter.getRootPtr(), iter.getRootPtr()));
+					validatorRef.getErrors().emplace_back(error::constructError<sourceLocation, error_classes::Validating, validate_errors::Invalid_String_Characters>(
+						iter - validatorRef.rootIter, iter.getEndPtr() - validatorRef.rootIter, validatorRef.rootIter));
 					return false;
 				}
 
 				if (*iter != ':') {
 					static constexpr auto sourceLocation{ std::source_location::current() };
-					options.validatorPtr->getErrors().emplace_back(error::constructError<sourceLocation, error_classes::Validating, validate_errors::Missing_Colon>(
-						iter - iter.getRootPtr(), iter.getEndPtr() - iter.getRootPtr(), iter.getRootPtr()));
+					validatorRef.getErrors().emplace_back(error::constructError<sourceLocation, error_classes::Validating, validate_errors::Missing_Colon>(
+						iter - validatorRef.rootIter, iter.getEndPtr() - validatorRef.rootIter, validatorRef.rootIter));
 					return false;
 				}
 
 				++iter;
-				if (!validator<derived_type>::template impl<options>(iter, end, depth)) {
+				if (!validator<derived_type>::impl(iter, depth, validatorRef)) {
 					return false;
 				}
 
@@ -71,27 +67,25 @@ namespace jsonifier_internal {
 					++iter;
 				} else if (*iter == '}') {
 					++iter;
-					if (iter < end && *iter != ',' && *iter != ']' && *iter != '}') {
+					if (iter && *iter != ',' && *iter != ']' && *iter != '}') {
 						static constexpr auto sourceLocation{ std::source_location::current() };
-						options.validatorPtr->getErrors().emplace_back(
-							error::constructError<sourceLocation, error_classes::Validating, validate_errors::Missing_Comma_Or_Closing_Brace>(iter - iter.getRootPtr(),
-								iter.getEndPtr() - iter.getRootPtr(), iter.getRootPtr()));
+						validatorRef.getErrors().emplace_back(error::constructError<sourceLocation, error_classes::Validating, validate_errors::Missing_Comma_Or_Closing_Brace>(
+							iter - validatorRef.rootIter, iter.getEndPtr() - validatorRef.rootIter, validatorRef.rootIter));
 						return false;
 					}
 					--depth;
 					return true;
 				} else {
 					static constexpr auto sourceLocation{ std::source_location::current() };
-					options.validatorPtr->getErrors().emplace_back(
-						error::constructError<sourceLocation, error_classes::Validating, validate_errors::Missing_Comma_Or_Closing_Brace>(iter - iter.getRootPtr(),
-							iter.getEndPtr() - iter.getRootPtr(), iter.getRootPtr()));
+					validatorRef.getErrors().emplace_back(error::constructError<sourceLocation, error_classes::Validating, validate_errors::Missing_Comma_Or_Closing_Brace>(
+						iter - validatorRef.rootIter, iter.getEndPtr() - validatorRef.rootIter, validatorRef.rootIter));
 					return false;
 				}
 			}
 			if (*iter != ',' && *iter != '}') {
 				static constexpr auto sourceLocation{ std::source_location::current() };
-				options.validatorPtr->getErrors().emplace_back(error::constructError<sourceLocation, error_classes::Validating, validate_errors::Missing_Comma_Or_Closing_Brace>(
-					iter - iter.getRootPtr(), iter.getEndPtr() - iter.getRootPtr(), iter.getRootPtr()));
+				validatorRef.getErrors().emplace_back(error::constructError<sourceLocation, error_classes::Validating, validate_errors::Missing_Comma_Or_Closing_Brace>(
+					iter - validatorRef.rootIter, iter.getEndPtr() - validatorRef.rootIter, validatorRef.rootIter));
 				return false;
 			}
 			--depth;
@@ -100,51 +94,49 @@ namespace jsonifier_internal {
 	};
 
 	template<typename derived_type> struct validate_impl<json_structural_type::Array_Start, derived_type> {
-		template<const validate_options_internal<derived_type>& options, typename iterator_type> static bool impl(iterator_type&& iter, iterator_type&& end, uint64_t& depth) {
+		template<typename validator_type, typename iterator_type> static bool impl(iterator_type&& iter, uint64_t& depth, validator_type& validatorRef) {
 			if (!iter || *iter != '[') {
 				static constexpr auto sourceLocation{ std::source_location::current() };
-				options.validatorPtr->getErrors().emplace_back(error::constructError<sourceLocation, error_classes::Validating, validate_errors::Missing_Array_Start>(
-					iter - iter.getRootPtr(), iter.getEndPtr() - iter.getRootPtr(), iter.getRootPtr()));
+				validatorRef.getErrors().emplace_back(error::constructError<sourceLocation, error_classes::Validating, validate_errors::Missing_Array_Start>(
+					iter - validatorRef.rootIter, iter.getEndPtr() - validatorRef.rootIter, validatorRef.rootIter));
 				return false;
 			}
 			++depth;
 			++iter;
 
-			if (iter.operator bool() && *iter == ']') {
+			if (*iter == ']') {
 				++iter;
 				--depth;
 				return true;
 			}
 
-			while (iter != end) {
-				if (!validator<derived_type>::template impl<options>(iter, end, depth)) {
+			while (iter) {
+				if (!validator<derived_type>::impl(iter, depth, validatorRef)) {
 					return false;
 				}
 				if (*iter == ',') {
 					++iter;
 				} else if (*iter == ']') {
 					++iter;
-					if (iter < end && *iter != ',' && *iter != ']' && *iter != '}') {
+					if (iter && *iter != ',' && *iter != ']' && *iter != '}') {
 						static constexpr auto sourceLocation{ std::source_location::current() };
-						options.validatorPtr->getErrors().emplace_back(
-							error::constructError<sourceLocation, error_classes::Validating, validate_errors::Missing_Comma_Or_Closing_Brace>(iter - iter.getRootPtr(),
-								iter.getEndPtr() - iter.getRootPtr(), iter.getRootPtr()));
+						validatorRef.getErrors().emplace_back(error::constructError<sourceLocation, error_classes::Validating, validate_errors::Missing_Comma_Or_Closing_Brace>(
+							iter - validatorRef.rootIter, iter.getEndPtr() - validatorRef.rootIter, validatorRef.rootIter));
 						return false;
 					}
 					--depth;
 					return true;
 				} else {
 					static constexpr auto sourceLocation{ std::source_location::current() };
-					options.validatorPtr->getErrors().emplace_back(
-						error::constructError<sourceLocation, error_classes::Validating, validate_errors::Missing_Comma_Or_Closing_Brace>(iter - iter.getRootPtr(),
-							iter.getEndPtr() - iter.getRootPtr(), iter.getRootPtr()));
+					validatorRef.getErrors().emplace_back(error::constructError<sourceLocation, error_classes::Validating, validate_errors::Missing_Comma_Or_Closing_Brace>(
+						iter - validatorRef.rootIter, iter.getEndPtr() - validatorRef.rootIter, validatorRef.rootIter));
 					return false;
 				}
 			}
 			if (*iter != ',' && *iter != ']') {
 				static constexpr auto sourceLocation{ std::source_location::current() };
-				options.validatorPtr->getErrors().emplace_back(error::constructError<sourceLocation, error_classes::Validating, validate_errors::Missing_Comma_Or_Closing_Brace>(
-					iter - iter.getRootPtr(), iter.getEndPtr() - iter.getRootPtr(), iter.getRootPtr()));
+				validatorRef.getErrors().emplace_back(error::constructError<sourceLocation, error_classes::Validating, validate_errors::Missing_Comma_Or_Closing_Brace>(
+					iter - validatorRef.rootIter, iter.getEndPtr() - validatorRef.rootIter, validatorRef.rootIter));
 				return false;
 			}
 			--depth;
@@ -165,15 +157,15 @@ namespace jsonifier_internal {
 		false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false };
 
 	template<typename derived_type> struct validate_impl<json_structural_type::String, derived_type> {
-		template<const validate_options_internal<derived_type>& options, typename iterator_type> static bool impl(iterator_type&& iter, iterator_type&& end) {
+		template<typename validator_type, typename iterator_type> static bool impl(iterator_type&& iter, validator_type& validatorRef) {
 			auto newPtr = iter.operator->();
 			++iter;
 			auto endPtr = iter.operator->();
-			skipWs(newPtr);
+			newPtr		= skipWs(newPtr);
 			if (newPtr == endPtr || *newPtr != '"') {
 				static constexpr auto sourceLocation{ std::source_location::current() };
-				options.validatorPtr->getErrors().emplace_back(error::constructError<sourceLocation, error_classes::Validating, validate_errors::Invalid_String_Characters>(
-					iter - iter.getRootPtr(), iter.getEndPtr() - iter.getRootPtr(), iter.getRootPtr()));
+				validatorRef.getErrors().emplace_back(error::constructError<sourceLocation, error_classes::Validating, validate_errors::Invalid_String_Characters>(
+					iter - validatorRef.rootIter, iter.getEndPtr() - validatorRef.rootIter, validatorRef.rootIter));
 				return false;
 			}
 			++newPtr;
@@ -181,30 +173,29 @@ namespace jsonifier_internal {
 				if (*newPtr == '\\') {
 					++newPtr;
 
-					if (*newPtr == '"' || *newPtr == '\\' || *newPtr == '/' || *newPtr == 'b' || *newPtr == 'f' || *newPtr == 'n' || *newPtr == 'r' || *newPtr == 't') {
+					if (*newPtr == '"' || *newPtr == '\\' || *newPtr == 0x2Fu || *newPtr == 0x62u || *newPtr == 0x66u || *newPtr == 'n' || *newPtr == 0x72u || *newPtr == 't') {
 						++newPtr;
-					} else if (*newPtr == 'u') {
+					} else if (*newPtr == 0x75u) {
 						++newPtr;
-						for (int32_t i = 0; i < 4; ++i) {
-							if (!hexDigits[*newPtr]) {
+						for (uint64_t x = 0ull; x < 4ull; ++x) {
+							if (!hexDigits[static_cast<uint64_t>(*newPtr)]) {
 								static constexpr auto sourceLocation{ std::source_location::current() };
-								options.validatorPtr->getErrors().emplace_back(
-									error::constructError<sourceLocation, error_classes::Validating, validate_errors::Invalid_Escape_Characters>(iter - iter.getRootPtr(),
-										iter.getEndPtr() - iter.getRootPtr(), iter.getRootPtr()));
+								validatorRef.getErrors().emplace_back(error::constructError<sourceLocation, error_classes::Validating, validate_errors::Invalid_Escape_Characters>(
+									iter - validatorRef.rootIter, iter.getEndPtr() - validatorRef.rootIter, validatorRef.rootIter));
 								return false;
 							}
 							++newPtr;
 						}
 					} else {
 						static constexpr auto sourceLocation{ std::source_location::current() };
-						options.validatorPtr->getErrors().emplace_back(error::constructError<sourceLocation, error_classes::Validating, validate_errors::Invalid_Escape_Characters>(
-							iter - iter.getRootPtr(), iter.getEndPtr() - iter.getRootPtr(), iter.getRootPtr()));
+						validatorRef.getErrors().emplace_back(error::constructError<sourceLocation, error_classes::Validating, validate_errors::Invalid_Escape_Characters>(
+							iter - validatorRef.rootIter, iter.getEndPtr() - validatorRef.rootIter, validatorRef.rootIter));
 						return false;
 					}
 				} else if (*newPtr < 0x20u) {
 					static constexpr auto sourceLocation{ std::source_location::current() };
-					options.validatorPtr->getErrors().emplace_back(error::constructError<sourceLocation, error_classes::Validating, validate_errors::Invalid_String_Characters>(
-						iter - iter.getRootPtr(), iter.getEndPtr() - iter.getRootPtr(), iter.getRootPtr()));
+					validatorRef.getErrors().emplace_back(error::constructError<sourceLocation, error_classes::Validating, validate_errors::Invalid_String_Characters>(
+						iter - validatorRef.rootIter, iter.getEndPtr() - validatorRef.rootIter, validatorRef.rootIter));
 					return false;
 				} else {
 					++newPtr;
@@ -213,8 +204,8 @@ namespace jsonifier_internal {
 
 			if (*newPtr != '"') {
 				static constexpr auto sourceLocation{ std::source_location::current() };
-				options.validatorPtr->getErrors().emplace_back(error::constructError<sourceLocation, error_classes::Validating, validate_errors::Invalid_String_Characters>(
-					iter - iter.getRootPtr(), iter.getEndPtr() - iter.getRootPtr(), iter.getRootPtr()));
+				validatorRef.getErrors().emplace_back(error::constructError<sourceLocation, error_classes::Validating, validate_errors::Invalid_String_Characters>(
+					iter - validatorRef.rootIter, iter.getEndPtr() - validatorRef.rootIter, validatorRef.rootIter));
 				return false;
 			}
 
@@ -223,20 +214,20 @@ namespace jsonifier_internal {
 	};
 
 	template<typename derived_type> struct validate_impl<json_structural_type::Number, derived_type> {
-		template<const validate_options_internal<derived_type>& options, typename iterator_type> static bool impl(iterator_type&& iter, iterator_type&& end) {
+		template<typename validator_type, typename iterator_type> static bool impl(iterator_type&& iter, validator_type& validatorRef) {
 			auto newPtr = iter.operator->();
 			++iter;
-			auto endPtr = iter.operator->();
-			skipWs(newPtr);
+			auto endPtr	 = iter.operator->();
+			newPtr		 = skipWs(iter);
 			auto newSize = endPtr - newPtr;
-			if (newSize > 1 && *newPtr == '0' && numberTable[*(newPtr + 1)]) {
+			if (newSize > 1 && *newPtr == 0x30u && numberTable[static_cast<uint64_t>(*(newPtr + 1))]) {
 				static constexpr auto sourceLocation{ std::source_location::current() };
-				options.validatorPtr->getErrors().emplace_back(error::constructError<sourceLocation, error_classes::Validating, validate_errors::Invalid_Number_Value>(
-					iter - iter.getRootPtr(), iter.getEndPtr() - iter.getRootPtr(), iter.getRootPtr()));
+				validatorRef.getErrors().emplace_back(error::constructError<sourceLocation, error_classes::Validating, validate_errors::Invalid_Number_Value>(
+					iter - validatorRef.rootIter, iter.getEndPtr() - validatorRef.rootIter, validatorRef.rootIter));
 				return false;
 			}
 
-			skipWs(newPtr);
+			newPtr = skipWs(iter);
 
 			auto consumeChar = [&](char expected) {
 				if (*newPtr == expected) {
@@ -256,7 +247,7 @@ namespace jsonifier_internal {
 			};
 
 			auto consumeSign = [&] {
-				if (*newPtr == '-' || *newPtr == '+') {
+				if (*newPtr == '-' || *newPtr == 0x2Bu) {
 					++newPtr;
 					return true;
 				}
@@ -270,8 +261,8 @@ namespace jsonifier_internal {
 			if (consumeChar(0x2Eu)) {
 				if (!consumeDigits(1)) {
 					static constexpr auto sourceLocation{ std::source_location::current() };
-					options.validatorPtr->getErrors().emplace_back(error::constructError<sourceLocation, error_classes::Validating, validate_errors::Invalid_Number_Value>(
-						iter - iter.getRootPtr(), iter.getEndPtr() - iter.getRootPtr(), iter.getRootPtr()));
+					validatorRef.getErrors().emplace_back(error::constructError<sourceLocation, error_classes::Validating, validate_errors::Invalid_Number_Value>(
+						iter - validatorRef.rootIter, iter.getEndPtr() - validatorRef.rootIter, validatorRef.rootIter));
 					return false;
 				}
 			}
@@ -281,16 +272,16 @@ namespace jsonifier_internal {
 				didWeFail = !consumeDigits(1);
 				if (didWeFail) {
 					static constexpr auto sourceLocation{ std::source_location::current() };
-					options.validatorPtr->getErrors().emplace_back(error::constructError<sourceLocation, error_classes::Validating, validate_errors::Invalid_Number_Value>(
-						iter - iter.getRootPtr(), iter.getEndPtr() - iter.getRootPtr(), iter.getRootPtr()));
+					validatorRef.getErrors().emplace_back(error::constructError<sourceLocation, error_classes::Validating, validate_errors::Invalid_Number_Value>(
+						iter - validatorRef.rootIter, iter.getEndPtr() - validatorRef.rootIter, validatorRef.rootIter));
 					return false;
 				}
 			}
-			skipWs(newPtr);
+			newPtr = skipWs(iter);
 			if (newPtr != endPtr) {
 				static constexpr auto sourceLocation{ std::source_location::current() };
-				options.validatorPtr->getErrors().emplace_back(error::constructError<sourceLocation, error_classes::Validating, validate_errors::Invalid_Number_Value>(
-					iter - iter.getRootPtr(), iter.getEndPtr() - iter.getRootPtr(), iter.getRootPtr()));
+				validatorRef.getErrors().emplace_back(error::constructError<sourceLocation, error_classes::Validating, validate_errors::Invalid_Number_Value>(
+					iter - validatorRef.rootIter, iter.getEndPtr() - validatorRef.rootIter, validatorRef.rootIter));
 				return false;
 			}
 
@@ -299,39 +290,40 @@ namespace jsonifier_internal {
 	};
 
 	template<typename derived_type> struct validate_impl<json_structural_type::Bool, derived_type> {
-		template<const validate_options_internal<derived_type>& options, typename iterator_type> static bool impl(iterator_type&& iter, iterator_type&& end) {
+		template<typename validator_type, typename iterator_type> static bool impl(iterator_type&& iter, validator_type& validatorRef) {
 			auto newPtr = iter.operator->();
 			++iter;
 			static constexpr char falseStr[]{ "false" };
 			static constexpr char trueStr[]{ "true" };
-			skipWs(newPtr);
-			if (getRemainingLength(iter, end) >= 4 && std ::memcmp(newPtr, trueStr, std::strlen(trueStr)) == 0) {
-				newPtr += std::strlen(trueStr) - 1;
-			} else if (getRemainingLength(iter, end) >= 5 && std::memcmp(newPtr, falseStr, std::strlen(falseStr)) == 0) {
-				newPtr += std::strlen(falseStr) - 1;
+			newPtr = skipWs(newPtr);
+			if (std::memcmp(newPtr, trueStr, std::strlen(trueStr)) == 0) {
+				newPtr += std::size(trueStr) - 1;
+			} else if (std::memcmp(newPtr, falseStr, std::strlen(falseStr)) == 0) {
+				newPtr += std::size(falseStr) - 1;
 			} else {
 				static constexpr auto sourceLocation{ std::source_location::current() };
-				options.validatorPtr->getErrors().emplace_back(error::constructError<sourceLocation, error_classes::Validating, validate_errors::Invalid_Bool_Value>(
-					iter - iter.getRootPtr(), iter.getEndPtr() - iter.getRootPtr(), iter.getRootPtr()));
+				validatorRef.getErrors().emplace_back(error::constructError<sourceLocation, error_classes::Validating, validate_errors::Invalid_Bool_Value>(
+					iter - validatorRef.rootIter, iter.getEndPtr() - validatorRef.rootIter, validatorRef.rootIter));
 				return false;
 			}
+
 			return iter.operator bool();
 		}
 	};
 
 	template<typename derived_type> struct validate_impl<json_structural_type::Null, derived_type> {
-		template<const validate_options_internal<derived_type>& options, typename iterator_type> static bool impl(iterator_type&& iter, iterator_type&& end) {
+		template<typename validator_type, typename iterator_type> static bool impl(iterator_type&& iter, validator_type& validatorRef) {
 			auto newPtr = iter.operator->();
 			++iter;
-			skipWs(newPtr);
+			newPtr = skipWs(newPtr);
 			static constexpr char nullStr[]{ "null" };
 
 			if (std::memcmp(newPtr, nullStr, std::strlen(nullStr)) == 0) {
 				newPtr += std::size(nullStr) - 1;
 			} else {
 				static constexpr auto sourceLocation{ std::source_location::current() };
-				options.validatorPtr->getErrors().emplace_back(error::constructError<sourceLocation, error_classes::Validating, validate_errors::Invalid_Null_Value>(
-					iter - iter.getRootPtr(), iter.getEndPtr() - iter.getRootPtr(), iter.getRootPtr()));
+				validatorRef.getErrors().emplace_back(error::constructError<sourceLocation, error_classes::Validating, validate_errors::Invalid_Null_Value>(
+					iter - validatorRef.rootIter, iter.getEndPtr() - validatorRef.rootIter, validatorRef.rootIter));
 				return false;
 			}
 

@@ -44,25 +44,22 @@ namespace jsonifier_internal {
 
 	template<jsonifier::concepts::integer_t value_type_new> JSONIFIER_INLINE bool parseInt(value_type_new& value, auto& iter) {
 		using value_type		  = jsonifier::concepts::unwrap_t<value_type_new>;
-		constexpr auto isVolatile = std::is_volatile_v<std::remove_reference_t<decltype(value)>>;
-		using char_type			  = decltype(iter);
-		uint64_t sig			  = uint64_t(numberSubTable[static_cast<uint64_t>(*iter)]);
+		uint64_t sig	 = uint64_t(numberSubTable[static_cast<uint8_t>(*iter)]);
 		uint64_t numTmp;
 
 		if (sig > 9) [[unlikely]] {
 			return false;
 		}
 
-		constexpr auto zero = uint8_t('0');
-#define expr_intg(i) \
-	if (numTmp = numberSubTable[iter[i]]; numTmp <= 9) [[likely]] \
+#define expr_intg(x) \
+	if (numTmp = numberSubTable[static_cast<uint8_t>(iter[x])]; numTmp <= 9) [[likely]] \
 		sig = numTmp + sig * 10; \
 	else { \
-		if constexpr (i > 1) { \
+		if constexpr (x > 1) { \
 			if (*iter == zero) \
 				return false; \
 		} \
-		goto digi_sepr_##i; \
+		goto digi_sepr_##x; \
 	}
 		repeat_in_1_18(expr_intg);
 #undef expr_intg
@@ -76,17 +73,16 @@ namespace jsonifier_internal {
 			return true;
 		}
 
-#define expr_sepr(i) \
-	digi_sepr_##i : if (!digiIsFp(uint8_t(iter[i]))) [[likely]] { \
-		iter += i; \
+#define expr_sepr(x) \
+	digi_sepr_##x : if (!digiIsFp(uint8_t(iter[x]))) [[likely]] { \
+		iter += x; \
 		value = sig; \
 		return true; \
 	} \
-	iter += i; \
+	iter += x; \
 	return false;
 		repeat_in_1_18(expr_sepr)
 #undef expr_sepr
-			return false;
 	}
 
 	template<typename value_type, typename char_type> constexpr bool stoui64(value_type& res, const char_type* c) noexcept {

@@ -23,7 +23,7 @@
 /// Feb 3, 2023
 #pragma once
 
-#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/Base.hpp"
+#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/TypeEntities.hpp"
 
 namespace simd_internal {
 
@@ -31,41 +31,6 @@ namespace simd_internal {
 		simd_int_type_new returnValue{};
 		std::memcpy(&returnValue, str, sizeof(simd_int_type_new));
 		return returnValue;
-	}
-
-	template<jsonifier::concepts::unsigned_type simd_int_type_new, typename char_type> JSONIFIER_INLINE static simd_int_type_new gatherValues(char_type* str) {
-		simd_int_type_new returnValue{};
-		std::memcpy(&returnValue, str, sizeof(simd_int_type_new));
-		return returnValue;
-	}
-
-	template<jsonifier::concepts::unsigned_type simd_int_type_new, typename char_type> JSONIFIER_INLINE static simd_int_type_new gatherValue(char_type str) {
-		simd_int_type_new returnValue{};
-		std::fill(&returnValue, (&returnValue) + 1, str);
-		return returnValue;
-	}
-
-	template<jsonifier::concepts::unsigned_type value_type> constexpr value_type opMoveMask(value_type x) {
-		value_type mask = 0;
-		for (int i = 0; i < sizeof(value_type); ++i) {
-			uint8_t byte = (x >> (i * sizeof(value_type))) & 0xFF;
-			if (byte & 0x80) {
-				mask |= (1ULL << i);
-			}
-		}
-		return mask;
-	}
-
-	template<jsonifier::concepts::unsigned_type value_type> constexpr value_type opCmpEq(value_type a, value_type b) {
-		value_type mask = 0;
-		for (int i = 0; i < sizeof(value_type); ++i) {
-			uint8_t byteA = (a >> (i * sizeof(value_type))) & 0xFF;
-			uint8_t byteB = (b >> (i * sizeof(value_type))) & 0xFF;
-			if (byteA == byteB) {
-				mask |= (1ULL << i);
-			}
-		}
-		return opMoveMask(mask);
 	}
 
 #if JSONIFIER_CHECK_FOR_INSTRUCTION(JSONIFIER_NEON)
@@ -78,16 +43,16 @@ namespace simd_internal {
 		return vreinterpretq_u8_u64(vld1q_u64(str));
 	}
 
-	template<simd_int_128_type simd_int_type_new, typename char_type> JSONIFIER_INLINE static simd_int_type_new gatherValues(char_type* str) {
-		return vld1q_x8(reinterpret_cast<const CHAR_TYPE*>(str));
+	template<simd_int_128_type simd_int_type_new> JSONIFIER_INLINE static simd_int_type_new gatherValues(const void* str) {
+		return vld1q_u8(static_cast<const uint8_t*>(str));
 	}
 
-	template<simd_int_128_type simd_int_type_new, typename char_type> JSONIFIER_INLINE static simd_int_type_new gatherValuesU(char_type* str) {
-		return vld1q_x8(reinterpret_cast<const CHAR_TYPE*>(str));
+	template<simd_int_128_type simd_int_type_new> JSONIFIER_INLINE static simd_int_type_new gatherValuesU(const void* str) {
+		return vld1q_u8(static_cast<const uint8_t*>(str));
 	}
 
 	template<simd_int_128_type simd_int_type_new, typename char_type> JSONIFIER_INLINE static simd_int_type_new gatherValue(char_type str) {
-		return vdupq_n_x8(str);
+		return vdupq_n_u8(str);
 	}
 
 	template<simd_int_128_type simd_int_type_new, typename char_type> JSONIFIER_INLINE static void store(const simd_int_type_new& value, char_type* storageLocation) {
@@ -96,7 +61,7 @@ namespace simd_internal {
 
 	template<simd_int_128_type simd_int_type_new, jsonifier::concepts::uint8_type char_type>
 	JSONIFIER_INLINE static void store(const simd_int_type_new& value, char_type* storageLocation) {
-		vst1q_x8(storageLocation, value);
+		vst1q_u8(storageLocation, value);
 	}
 
 #elif JSONIFIER_CHECK_FOR_AVX(JSONIFIER_AVX)
@@ -110,7 +75,7 @@ namespace simd_internal {
 	}
 
 	template<simd_int_128_type simd_int_type_new, typename char_type> JSONIFIER_INLINE static simd_int_type_new gatherValue(char_type str) {
-		return _mm_set1_epi8(str);
+		return _mm_set1_epi8(static_cast<char>(str));
 	}
 
 	template<simd_int_128_type simd_int_type_new, typename char_type> JSONIFIER_INLINE static void store(const simd_int_type_new& value, char_type* storageLocation) {
@@ -128,7 +93,7 @@ namespace simd_internal {
 	}
 
 	template<simd_int_256_type simd_int_type_new, typename char_type> JSONIFIER_INLINE static simd_int_type_new gatherValue(char_type str) {
-		return _mm256_set1_epi8(str);
+		return _mm256_set1_epi8(static_cast<char>(str));
 	}
 
 	template<simd_int_256_type simd_int_type_new, typename char_type> JSONIFIER_INLINE static void store(const simd_int_type_new& value, char_type* storageLocation) {

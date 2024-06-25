@@ -24,7 +24,7 @@
 #pragma once
 
 #include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/Derailleur.hpp"
-#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/HashMap.hpp"
+#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/HashSet.hpp"
 #include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/String.hpp"
 
 namespace std {
@@ -64,7 +64,7 @@ namespace jsonifier_internal {
 
 	template<> JSONIFIER_INLINE bool constructValueFromRawJsonData<bool>(const jsonifier::string& newData);
 
-	JSONIFIER_INLINE jsonifier::json_type getValueType(uint8_t charToCheck) {
+	JSONIFIER_INLINE jsonifier::json_type getvalue_type(uint8_t charToCheck) {
 		if (jsonifier_internal::isNumberType(charToCheck)) [[likely]] {
 			return jsonifier::json_type::Number;
 		} else if (jsonifier_internal::boolTable[charToCheck]) [[likely]] {
@@ -103,7 +103,7 @@ namespace jsonifier {
 			*this = value;
 		}
 
-		JSONIFIER_INLINE string_view_ptr data() const {
+		JSONIFIER_INLINE const char* data() const {
 			return jsonData.data();
 		}
 
@@ -113,7 +113,7 @@ namespace jsonifier {
 
 		JSONIFIER_INLINE json_type getType() const {
 			if (jsonData.size() > 0) {
-				return jsonifier_internal::getValueType(static_cast<uint8_t>(jsonData[0]));
+				return jsonifier_internal::getvalue_type(static_cast<uint8_t>(jsonData[0]));
 			} else {
 				return json_type::Unset;
 			}
@@ -256,18 +256,18 @@ namespace jsonifier_internal {
 				return newString;
 			};
 
-			skipWs(newIter01);
+			newIter01	  = skipWs(newIter01);
 			auto newCount = countValueElements<'{', '}'>(newIter02, endIter01);
 			collectCharacter('{');
 			for (uint64_t x = 0; x < newCount && newIter02 < endIter01 && newIter01 < endIter01; ++x) {
-				skipWs(newIter01);
+				newIter01	= skipWs(newIter01);
 				auto newKey = collectKey();
-				skipWs(newIter01);
+				newIter01	= skipWs(newIter01);
 				collectCharacter(0x3A);
-				skipWs(newIter01);
+				newIter01 = skipWs(newIter01);
 				bool endValue{ x == newCount - 1 };
 				results[newKey] = collectValue(endValue);
-				skipWs(newIter01);
+				newIter01		= skipWs(newIter01);
 				collectCharacter(',');
 			}
 		}
@@ -307,14 +307,14 @@ namespace jsonifier_internal {
 				return newString;
 			};
 
-			skipWs(newIter01);
+			newIter01	  = skipWs(newIter01);
 			auto newCount = countValueElements<'[', ']'>(newIter02, endIter01);
 			collectCharacter('[');
 			for (uint64_t x = 0; x < newCount && newIter02 < endIter01 && newIter01 < endIter01; ++x) {
-				skipWs(newIter01);
+				newIter01 = skipWs(newIter01);
 				bool endValue{ x == newCount - 1 };
 				results.emplace_back(collectValue(endValue));
-				skipWs(newIter01);
+				newIter01 = skipWs(newIter01);
 				collectCharacter(',');
 			}
 		}
