@@ -26,7 +26,7 @@ enum instruction_set {
 
 #if defined(__aarch64__) || defined(_M_ARM64) || defined(_M_ARM64EC)
 
-static inline uint32_t detectSupportedArchitectures() {
+inline uint32_t detectSupportedArchitectures() {
 	return instruction_set::NEON;
 }
 
@@ -44,7 +44,7 @@ namespace {
 	const uint32_t cpuidPopcntBit	= 1ul << 23;
 }
 
-static inline void cpuid(uint32_t* eax, uint32_t* ebx, uint32_t* ecx, uint32_t* edx) {
+inline void cpuid(uint32_t* eax, uint32_t* ebx, uint32_t* ecx, uint32_t* edx) {
 	#if defined(_MSC_VER)
 	int cpuInfo[4];
 	__cpuidex(cpuInfo, *eax, *ecx);
@@ -65,7 +65,7 @@ static inline void cpuid(uint32_t* eax, uint32_t* ebx, uint32_t* ecx, uint32_t* 
 	#endif
 }
 
-static inline uint64_t xgetbv() {
+inline uint64_t xgetbv() {
 	#if defined(_MSC_VER)
 	return _xgetbv(0);
 	#else
@@ -75,7 +75,7 @@ static inline uint64_t xgetbv() {
 	#endif
 }
 
-static inline uint32_t detectSupportedArchitectures() {
+inline uint32_t detectSupportedArchitectures() {
 	std::uint32_t eax	  = 0;
 	std::uint32_t ebx	  = 0;
 	std::uint32_t ecx	  = 0;
@@ -137,7 +137,7 @@ static inline uint32_t detectSupportedArchitectures() {
 
 #else
 
-static inline uint32_t detectSupportedArchitectures() {
+inline uint32_t detectSupportedArchitectures() {
 	return instruction_set::DEFAULT;
 }
 #endif

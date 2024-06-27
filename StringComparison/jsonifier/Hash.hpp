@@ -27,16 +27,46 @@
 #include <unordered_map>
 #include <exception>
 #include <string>
+#include <bit>
 
 namespace jsonifier_internal {
 
 	struct fnv1a_hash {
-		static constexpr uint64_t fnv64OffsetBasis = 0xcbf29ce484222325;
-		static constexpr uint64_t fnv64Prime	   = 0x00000100000001B3;
+		static constexpr uint64_t fnv64Prime{ 0x00000100000001B3ULL };
+
+		template<typename value_type> JSONIFIER_INLINE constexpr value_type readBits(const char* ptr) const {
+			JSONIFIER_ALIGN value_type returnValue{};
+			if (std::is_constant_evaluated()) {
+				for (uint64_t x = 0; x < sizeof(value_type); ++x) {
+					returnValue |= static_cast<value_type>(static_cast<unsigned char>(ptr[x])) << (x * 8);
+				}
+			} else {
+				std::memcpy(&returnValue, ptr, sizeof(value_type));
+			}
+			return returnValue;
+		}
 
 		constexpr uint64_t operator()(string_view_ptr value, uint64_t storageSize, uint64_t seed) const {
-			for (uint64_t x = 0; x < storageSize; ++x) {
-				seed ^= value[x];
+			while (storageSize >= 8) {
+				seed ^= readBits<uint64_t>(value);
+				seed *= fnv64Prime;
+				value += 8;
+				storageSize -= 8;
+			}
+			if (storageSize >= 4) {
+				seed ^= readBits<uint32_t>(value);
+				seed *= fnv64Prime;
+				value += 4;
+				storageSize -= 4;
+			}
+			if (storageSize >= 2) {
+				seed ^= readBits<uint16_t>(value);
+				seed *= fnv64Prime;
+				value += 2;
+				storageSize -= 2;
+			}
+			if (storageSize > 0) {
+				seed ^= readBits<uint8_t>(value);
 				seed *= fnv64Prime;
 			}
 			return seed;

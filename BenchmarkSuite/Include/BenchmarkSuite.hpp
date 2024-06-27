@@ -58,7 +58,7 @@ namespace bnch_swt {
 		static constexpr uint64_t length{ sizeVal > 0 ? sizeVal - 1 : 0 };
 
 		constexpr string_literal(const char (&str)[sizeVal]) {
-			std::copy(str, str + sizeVal, values);
+			std::copy(str, str + length, values);
 		}
 
 		constexpr const char* data() const {
@@ -70,10 +70,10 @@ namespace bnch_swt {
 		}
 
 		constexpr operator jsonifier::string_view() const {
-			return { values, sizeVal };
+			return { values, length };
 		}
 
-		char values[sizeVal];
+		char values[sizeVal]{};
 	};
 
 	static void const volatile* volatile globalForceEscapePointer;
@@ -261,6 +261,7 @@ namespace bnch_swt {
 		jsonifier::string_view benchmarkColor{};
 		jsonifier::string_view benchmarkName{};
 		double medianAbsolutePercentageError{};
+		jsonifier::string_view libraryName{};
 		uint64_t iterationCount{};
 		double resultTime{};
 
@@ -325,6 +326,45 @@ namespace bnch_swt {
 		}
 	};
 
+	struct benchmark_result_final_parse {
+		double medianAbsolutePercentageError{};
+		jsonifier::string_view libraryName{};
+		jsonifier::string benchmarkColor{};
+		jsonifier::string benchmarkName{};
+		uint64_t iterationCount{};
+		double resultTime{};
+
+		inline benchmark_result_final_parse() noexcept = default;
+
+		inline benchmark_result_final_parse& operator=(benchmark_result_final&& other) {
+			benchmarkColor				  = static_cast<jsonifier::string>(other.benchmarkColor);
+			benchmarkName				  = static_cast<jsonifier::string>(other.benchmarkName);
+			medianAbsolutePercentageError = other.medianAbsolutePercentageError;
+			iterationCount				  = other.iterationCount;
+			libraryName					  = other.libraryName;
+			resultTime					  = other.resultTime;
+			return *this;
+		}
+
+		inline benchmark_result_final_parse(benchmark_result_final&& other) {
+			*this = std::move(other);
+		}
+
+		inline benchmark_result_final_parse& operator=(const benchmark_result_final& other) {
+			benchmarkColor				  = static_cast<jsonifier::string>(other.benchmarkColor);
+			benchmarkName				  = static_cast<jsonifier::string>(other.benchmarkName);
+			medianAbsolutePercentageError = other.medianAbsolutePercentageError;
+			iterationCount				  = other.iterationCount;
+			libraryName					  = other.libraryName;
+			resultTime					  = other.resultTime;
+			return *this;
+		}
+
+		inline benchmark_result_final_parse(const benchmark_result_final& other) {
+			*this = std::move(other);
+		}
+	};
+
 	template<string_literal str> struct benchmark_suite_results_stored {
 		constexpr benchmark_suite_results_stored() noexcept = default;
 		mutable std::array<benchmark_result_final, 256> results{};
@@ -340,7 +380,7 @@ namespace bnch_swt {
 			}
 			benchmarkSuiteName = values.benchmarkSuiteName;
 		}
-		jsonifier::vector<benchmark_result_final> results{};
+		jsonifier::vector<benchmark_result_final_parse> results{};
 		jsonifier::string_view benchmarkSuiteName{};
 	};
 
@@ -375,13 +415,32 @@ namespace bnch_swt {
 		inline static std::string writeJsonData(const std::string& filePath) {
 			benchmark_suite_results newValues{ results };
 			for (auto& value: newValues.results) {
-				//auto stringToWrite = parser.serializeJson(value);
-				//std::cout << "STRING TO WRITE: " << stringToWrite << std::endl;
+				auto stringToWrite = parser.serializeJson(value);
+				std::cout << "STRING TO WRITE: " << stringToWrite << std::endl;
 			}
-			//auto stringToWrite = parser.serializeJson(newValues);
-			//file_loader fileLoader{ filePath };
-			//fileLoader.saveFile(static_cast<std::string>(stringToWrite));
-			//std::cout << "STRING TO WRITE: " << stringToWrite << std::endl;
+			auto stringToWrite = parser.serializeJson(newValues);
+			file_loader fileLoader{ filePath };
+			fileLoader.saveFile(static_cast<std::string>(stringToWrite));
+			std::cout << "STRING TO WRITE: " << stringToWrite << std::endl;
+			return {};
+		}
+
+		inline static std::string writeCsvData(const std::string& filePath) {
+			benchmark_suite_results newValues{ results };
+			std::string newString{ "benchmarkName,medianAbsolutePercentageError,resultTime,benchmarkColor" };
+			for (uint64_t x = 0; x < newValues.results.size(); ++x) {
+				newString += "\n";
+				newString += newValues.results[x].benchmarkName + ",";
+				newString += jsonifier::toString(newValues.results[x].medianAbsolutePercentageError) + ",";
+				newString += jsonifier::toString(newValues.results[x].resultTime) + ",";
+				newString += static_cast<jsonifier::string>(newValues.results[x].benchmarkColor);
+				if (x < newValues.results.size() - 1) {
+					newString += ",";
+				}
+			}
+			file_loader fileLoader{ filePath };
+			fileLoader.saveFile(static_cast<std::string>(newString));
+			std::cout << "STRING TO WRITE: " << newString << std::endl;
 			return {};
 		}
 
@@ -421,7 +480,8 @@ namespace bnch_swt {
 				valueToCheck < valueToCheckAgainst;
 		}
 
-		template<string_literal benchmarkName, string_literal benchmarkColor, int64_t maxIterationCount, invocable_void function_type, typename... arg_types>
+		template<string_literal benchmarkName, string_literal libraryName, string_literal benchmarkColor, int64_t maxIterationCount, invocable_void function_type,
+			typename... arg_types>
 		static inline auto benchmark(function_type&& function, arg_types&&... args) {
 			static constexpr int64_t warmupCount	   = maxIterationCount;
 			static constexpr int64_t minIterationCount =
@@ -447,6 +507,7 @@ namespace bnch_swt {
 				results.medianAbsolutePercentageError;
 			benchmark_suite<benchmarkSuite>::results.results[benchmark_suite<benchmarkSuite>::results.currentCount].resultTime	  = results.resultTime;
 			benchmark_suite<benchmarkSuite>::results.results[benchmark_suite<benchmarkSuite>::results.currentCount].benchmarkName = benchmarkName.operator jsonifier::string_view();
+			benchmark_suite<benchmarkSuite>::results.results[benchmark_suite<benchmarkSuite>::results.currentCount].libraryName	  = libraryName;
 			benchmark_suite<benchmarkSuite>::results.results[benchmark_suite<benchmarkSuite>::results.currentCount].benchmarkColor =
 				benchmarkColor.operator jsonifier::string_view();
 			benchmark_suite<benchmarkSuite>::results.results[benchmark_suite<benchmarkSuite>::results.currentCount].iterationCount = results.currentIterationCount;
@@ -454,7 +515,8 @@ namespace bnch_swt {
 			return results.resultTime;
 		}
 
-		template<string_literal benchmarkName, string_literal benchmarkColor, int64_t maxIterationCount, invocable_not_void function_type, typename... arg_types>
+		template<string_literal benchmarkName, string_literal libraryName, string_literal benchmarkColor, int64_t maxIterationCount, invocable_not_void function_type,
+			typename... arg_types>
 		static inline auto benchmark(function_type&& function, arg_types&&... args) {
 			static constexpr int64_t warmupCount	   = maxIterationCount;
 			static constexpr int64_t minIterationCount =
@@ -479,6 +541,7 @@ namespace bnch_swt {
 			benchmark_suite<benchmarkSuite>::results.results[benchmark_suite<benchmarkSuite>::results.currentCount].medianAbsolutePercentageError =
 				results.medianAbsolutePercentageError;
 			benchmark_suite<benchmarkSuite>::results.results[benchmark_suite<benchmarkSuite>::results.currentCount].resultTime	  = results.resultTime;
+			benchmark_suite<benchmarkSuite>::results.results[benchmark_suite<benchmarkSuite>::results.currentCount].libraryName	  = libraryName;
 			benchmark_suite<benchmarkSuite>::results.results[benchmark_suite<benchmarkSuite>::results.currentCount].benchmarkName = benchmarkName.operator jsonifier::string_view();
 			benchmark_suite<benchmarkSuite>::results.results[benchmark_suite<benchmarkSuite>::results.currentCount].benchmarkColor =
 				benchmarkColor.operator jsonifier::string_view();
@@ -491,6 +554,12 @@ namespace bnch_swt {
 }
 
 namespace jsonifier {
+
+	template<> struct core<bnch_swt::benchmark_result_final_parse> {
+		using value_type				 = bnch_swt::benchmark_result_final_parse;
+		static constexpr auto parseValue = createValue<&value_type::benchmarkName, &value_type::medianAbsolutePercentageError, &value_type::resultTime, &value_type::benchmarkColor,
+			&value_type::iterationCount, &value_type::libraryName>();
+	};
 
 	template<> struct core<bnch_swt::benchmark_result_final> {
 		using value_type = bnch_swt::benchmark_result_final;

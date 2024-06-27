@@ -13,7 +13,7 @@ set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};${CMAKE_CURRENT_SOURCE_DIR}/../CMake
 
 project ("StringComparison" LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)
-
+set(xxHash_DIR "C:/Vcpkg/installed/x64-windows/share/xxhash")
 add_executable("StringComparisonExe" "main.cpp")
 
 target_link_options("StringComparisonExe" PUBLIC 
@@ -22,10 +22,11 @@ target_link_options("StringComparisonExe" PUBLIC
 	"$<$<CXX_COMPILER_ID:MSVC>:/OPT:ICF>"
 	"$<$<CXX_COMPILER_ID:MSVC>:/PROFILE>"
 )
-
+find_package(xxHash CONFIG REQUIRED)
 target_link_libraries(
 	"StringComparisonExe"
 	PUBLIC
+	"xxHash::xxhash"
 	"BenchmarkSuite"
 	"glaze::glaze"
 )

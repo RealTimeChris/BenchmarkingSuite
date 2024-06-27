@@ -135,8 +135,6 @@
 
 #endif
 
-union __m128x;
-
 #if JSONIFIER_CHECK_FOR_INSTRUCTION(JSONIFIER_ANY_AVX)
 
 using simd_int_128 = __m128i;
