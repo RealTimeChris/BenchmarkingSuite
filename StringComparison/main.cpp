@@ -1077,12 +1077,13 @@ int main() {
 	bnch_swt::benchmark_suite<"Find Test">::benchmark<"jsonifier_internal::frozenMap<search_metadata_data>", "steelblue", 1000>([&] {
 		for (uint64_t x = 0; x < 1024; ++x) {
 			for (uint64_t y = 0; y < std::size(arrayNew01); ++y) {
-				auto newString = *jsonifierMapNew01.find(arrayNew01[y].first);
+				static constexpr auto keyStats = jsonifier_internal::keyStats<search_metadata_data>();
+				auto newString				   = *jsonifierMapNew01.find<keyStats>(arrayNew01[y].first);
 				bnch_swt::doNotOptimizeAway(newString);
 			}
 		}
 		return;
-	});
+	}); /*
 
 	bnch_swt::benchmark_suite<"Find Test">::benchmark<"glz::detail::frozenMap<hashtag>", "steelblue", 1000>([&] {
 		for (uint64_t x = 0; x < 1024; ++x) {
@@ -1503,7 +1504,8 @@ int main() {
 		}
 		return;
 	});
-
+	
+	*/
 	bnch_swt::benchmark_suite<"Find Test">::benchmark<"glz::detail::frozenMap<guild_data>", "steelblue", 1000>([&] {
 		for (uint64_t x = 0; x < 1024; ++x) {
 			for (uint64_t y = 0; y < std::size(arrayNew23); ++y) {
@@ -1513,11 +1515,23 @@ int main() {
 		}
 		return;
 	});
+	for (uint64_t y = 0; y < std::size(arrayNew23); ++y) {
+		static constexpr auto keyStats = jsonifier_internal::keyStats<guild_data>();
+		auto newString				   = *jsonifierMapNew23.find<keyStats>(arrayNew23[y].first);
+		std::visit(
+			[&](auto& value) {
+				std::cout << "KEY: " << typeid(value).name() << std::endl;
+			},
+			newString);
+		
+		bnch_swt::doNotOptimizeAway(newString);
+	}
 
 	bnch_swt::benchmark_suite<"Find Test">::benchmark<"jsonifier_internal::frozenMap<guild_data>", "steelblue", 1000>([&] {
 		for (uint64_t x = 0; x < 1024; ++x) {
 			for (uint64_t y = 0; y < std::size(arrayNew23); ++y) {
-				auto newString = *jsonifierMapNew23.find(arrayNew23[y].first);
+				static constexpr auto keyStats = jsonifier_internal::keyStats<guild_data>();
+				auto newString				   = *jsonifierMapNew23.find<keyStats>(arrayNew23[y].first);
 				bnch_swt::doNotOptimizeAway(newString);
 			}
 		}
@@ -1537,13 +1551,13 @@ int main() {
 	bnch_swt::benchmark_suite<"Find Test">::benchmark<"jsonifier_internal::frozenMap<discord_message>", "steelblue", 1000>([&] {
 		for (uint64_t x = 0; x < 1024; ++x) {
 			for (uint64_t y = 0; y < std::size(arrayNew24); ++y) {
-				auto newString = *jsonifierMapNew24.find(arrayNew24[y].first);
+				static constexpr auto keyStats = jsonifier_internal::keyStats<discord_message>();
+				auto newString				   = *jsonifierMapNew24.find<keyStats>(arrayNew24[y].first);
 				bnch_swt::doNotOptimizeAway(newString);
 			}
 		}
 		return;
 	});
-
 
 	
 	bnch_swt::benchmark_suite<"Find Test">::writeJsonData("../../test.json");

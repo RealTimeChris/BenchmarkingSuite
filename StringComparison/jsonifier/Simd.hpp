@@ -205,7 +205,7 @@ namespace jsonifier_internal {
 		}
 
 		template<bool collectAligned> JSONIFIER_INLINE void collectStringValues(string_view_ptr values) {
-			prefetchInternal(values + bytesPerStep);
+			prefetchInternal(values + bytesPerStep, 256);
 			if constexpr (collectAligned) {
 				newPtr[0] = simd_internal::gatherValues<simd_int_t>(values + (bytesPerStep * 0));
 				newPtr[1] = simd_internal::gatherValues<simd_int_t>(values + (bytesPerStep * 1));

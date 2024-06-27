@@ -76,8 +76,8 @@ namespace jsonifier_internal {
 						return parseObjects<options, false>(value, iter, end);
 					}
 				}
-
-				if (const auto& memberIt = frozenSet.find(key); memberIt != frozenSet.end()) [[likely]] {
+				static constexpr auto keyStatsVal = keyStats<value_type>();
+				if (const auto& memberIt = frozenSet.find<keyStatsVal>(key); memberIt != frozenSet.end()) [[likely]] {
 					if (*iter == ':') [[likely]] {
 						++iter;
 					} else {
