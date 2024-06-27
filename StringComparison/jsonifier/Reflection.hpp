@@ -19,13 +19,12 @@
 	OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 	DEALINGS IN THE SOFTWARE.
 */
-/// NOTE: Most of the code in this header was sampled from Glaze library: https://github.com/stephenberry/glaze
 /// https://github.com/RealTimeChris/jsonifier
 /// Feb 3, 2023
 #pragma once
 
-#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/TypeEntities.hpp"
-#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/StringView.hpp"
+#include <jsonifier/TypeEntities.hpp>
+#include <jsonifier/StringView.hpp>
 
 namespace jsonifier {
 

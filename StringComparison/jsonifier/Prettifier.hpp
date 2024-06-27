@@ -23,10 +23,10 @@
 /// Feb 3, 2023
 #pragma once
 
-#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/Serialize_Impl.hpp"
-#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/TypeEntities.hpp"
-#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/Minifier.hpp"
-#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/Write.hpp"
+#include <jsonifier/Serialize_Impl.hpp>
+#include <jsonifier/TypeEntities.hpp>
+#include <jsonifier/Minifier.hpp>
+#include <jsonifier/Write.hpp>
 
 namespace jsonifier {
 
@@ -71,7 +71,7 @@ namespace jsonifier_internal {
 			derivedRef.errors.clear();
 			derivedRef.section.reset(in.data(), in.size());
 			rootIter = in.data();
-			simd_structural_iterator iter{ derivedRef.section.begin(), derivedRef.section.end() };
+			json_structural_iterator iter{ derivedRef.section.begin(), derivedRef.section.end() };
 			if (!iter) {
 				static constexpr auto sourceLocation{ std::source_location::current() };
 				getErrors().emplace_back(
@@ -99,7 +99,7 @@ namespace jsonifier_internal {
 			derivedRef.errors.clear();
 			derivedRef.section.reset(in.data(), in.size());
 			rootIter = in.data();
-			simd_structural_iterator iter{ derivedRef.section.begin(), derivedRef.section.end() };
+			json_structural_iterator iter{ derivedRef.section.begin(), derivedRef.section.end() };
 			if (!iter) {
 				static constexpr auto sourceLocation{ std::source_location::current() };
 				getErrors().emplace_back(

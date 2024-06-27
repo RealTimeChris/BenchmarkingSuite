@@ -23,11 +23,11 @@
 /// Feb 20, 2023
 #pragma once
 
-#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/NumberUtils.hpp"
-#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/StringUtils.hpp"
-#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/Prettifier.hpp"
-#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/Error.hpp"
-#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/Write.hpp"
+#include <jsonifier/NumberUtils.hpp>
+#include <jsonifier/StringUtils.hpp>
+#include <jsonifier/Prettifier.hpp>
+#include <jsonifier/Error.hpp>
+#include <jsonifier/Write.hpp>
 
 namespace jsonifier {
 

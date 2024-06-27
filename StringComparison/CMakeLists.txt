@@ -35,7 +35,7 @@ message("${AVX_FLAG}")
 target_compile_options (
 	"StringComparisonExe" PUBLIC
 	"$<$<CXX_COMPILER_ID:MSVC>:$<$<STREQUAL:${ASAN_ENABLED},TRUE>:/fsanitize=address>>"
-	"$<$<CXX_COMPILER_ID:MSVC>:/constexpr:steps 16294304>"
+	"$<$<CXX_COMPILER_ID:MSVC>:/constexpr:steps 2097152>"
 	"$<$<CXX_COMPILER_ID:GNU>:$<$<STREQUAL:${ASAN_ENABLED},TRUE>:-fsanitize=address>>"
 	
 	"${AVX_FLAG}"

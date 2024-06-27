@@ -23,9 +23,9 @@
 /// Feb 20, 2023
 #pragma once
 
-#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/Serializer.hpp"
-#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/Parser.hpp"
-#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/Config.hpp"
+#include <jsonifier/Serializer.hpp>
+#include <jsonifier/Parser.hpp>
+#include <jsonifier/Config.hpp>
 #include <algorithm>
 
 namespace jsonifier_internal {
@@ -63,10 +63,10 @@ namespace jsonifier_internal {
 
 			static constexpr auto quotedKey = joinV < chars<"\"">, key, options.optionsReal.prettify ? chars<"\": "> : chars < "\":" >> ;
 			writeCharacters<quotedKey>(buffer, index);
-			static constexpr auto keyStatsVal = keyStats<value_type>();
+
 			static constexpr auto frozenSet = makeSet<value_type>();
-			static constexpr auto memberIt	= frozenSet.find<keyStatsVal>(key);
-			static_assert(memberIt != frozenSet.end());
+			static constexpr auto memberIt	= frozenSet.find(key);
+			static_assert(memberIt != frozenSet.end(), "Invalid key passed to partial write");
 			std::visit(
 				[&](const auto& memberPtr) -> void {
 					auto& newMember	  = getMember(value, memberPtr);

@@ -21,17 +21,16 @@
 */
 /// https://github.com/RealTimeChris/jsonifier
 /// Feb 3, 2023
-/// Most of the code in this header was sampled from Glaze library - https://github.com/stephenberry/glaze
 #pragma once
 
-#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/Allocator.hpp"
-#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/String.hpp"
+#include <jsonifier/Allocator.hpp>
+#include <jsonifier/String.hpp>
 
-#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/IToStr.hpp"
-#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/DToStr.hpp"
-#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/StrToD.hpp"
-#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/StrToI.hpp"
-#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/Parser.hpp"
+#include <jsonifier/IToStr.hpp>
+#include <jsonifier/DToStr.hpp>
+#include <jsonifier/StrToD.hpp>
+#include <jsonifier/StrToI.hpp>
+#include <jsonifier/Parser.hpp>
 
 namespace jsonifier {
 
@@ -136,7 +135,7 @@ namespace jsonifier_internal {
 						return;
 					}
 				} else {
-					uint64_t x{};
+					uint64_t i{};
 					if (*iter == '-') [[unlikely]] {
 						static constexpr auto sourceLocation{ std::source_location::current() };
 						errors.emplace_back(error::constructError<sourceLocation, error_classes::Parsing, parse_errors::Invalid_Number_Value>(iter - options.rootIter,
@@ -146,7 +145,7 @@ namespace jsonifier_internal {
 					}
 
 					static_assert(sizeof(*iter) == sizeof(char));
-					auto s = parseInt(x, newPtr);
+					auto s = parseInt(i, newPtr);
 					++iter;
 					if (!s) [[unlikely]] {
 						static constexpr auto sourceLocation{ std::source_location::current() };
@@ -156,17 +155,17 @@ namespace jsonifier_internal {
 						return;
 					}
 
-					if (x > maximum) [[unlikely]] {
+					if (i > maximum) [[unlikely]] {
 						static constexpr auto sourceLocation{ std::source_location::current() };
 						errors.emplace_back(error::constructError<sourceLocation, error_classes::Parsing, parse_errors::Invalid_Number_Value>(iter - options.rootIter,
 							end - options.rootIter, options.rootIter));
 						skipToNextValue(iter, end);
 						return;
 					}
-					value = V(x);
+					value = V(i);
 				}
 			} else {
-				uint64_t x{};
+				uint64_t i{};
 				int32_t sign = 1;
 				if (*newPtr == '-') {
 					sign = -1;
@@ -174,7 +173,7 @@ namespace jsonifier_internal {
 				}
 
 				static_assert(sizeof(*iter) == sizeof(char));
-				auto s = parseInt(x, newPtr);
+				auto s = parseInt(i, newPtr);
 				++iter;
 				if (!s) [[unlikely]] {
 					static constexpr auto sourceLocation{ std::source_location::current() };
@@ -186,23 +185,23 @@ namespace jsonifier_internal {
 
 				if (sign == -1) {
 					static constexpr auto min_abs = uint64_t((std::numeric_limits<V>::max)()) + 1;
-					if (x > min_abs) [[unlikely]] {
+					if (i > min_abs) [[unlikely]] {
 						static constexpr auto sourceLocation{ std::source_location::current() };
 						errors.emplace_back(error::constructError<sourceLocation, error_classes::Parsing, parse_errors::Invalid_Number_Value>(iter - options.rootIter,
 							end - options.rootIter, options.rootIter));
 						skipToNextValue(iter, end);
 						return;
 					}
-					value = V(sign * x);
+					value = V(sign * i);
 				} else {
-					if (x > maximum) [[unlikely]] {
+					if (i > maximum) [[unlikely]] {
 						static constexpr auto sourceLocation{ std::source_location::current() };
 						errors.emplace_back(error::constructError<sourceLocation, error_classes::Parsing, parse_errors::Invalid_Number_Value>(iter - options.rootIter,
 							end - options.rootIter, options.rootIter));
 						skipToNextValue(iter, end);
 						return;
 					}
-					value = V(x);
+					value = V(i);
 				}
 			}
 		} else {
@@ -243,7 +242,7 @@ namespace jsonifier_internal {
 						return;
 					}
 				} else {
-					uint64_t x{};
+					uint64_t i{};
 					if (*iter == '-') [[unlikely]] {
 						static constexpr auto sourceLocation{ std::source_location::current() };
 						errors.emplace_back(error::constructError<sourceLocation, error_classes::Parsing, parse_errors::Invalid_Number_Value>(iter - options.rootIter,
@@ -253,7 +252,7 @@ namespace jsonifier_internal {
 					}
 
 					static_assert(sizeof(*iter) == sizeof(char));
-					auto s = parseInt<jsonifier::concepts::unwrap_t<decltype(x)>>(x, iter);
+					auto s = parseInt<jsonifier::concepts::unwrap_t<decltype(i)>>(i, iter);
 					if (!s) [[unlikely]] {
 						static constexpr auto sourceLocation{ std::source_location::current() };
 						errors.emplace_back(error::constructError<sourceLocation, error_classes::Parsing, parse_errors::Invalid_Number_Value>(iter - options.rootIter,
@@ -262,17 +261,17 @@ namespace jsonifier_internal {
 						return;
 					}
 
-					if (x > maximum) [[unlikely]] {
+					if (i > maximum) [[unlikely]] {
 						static constexpr auto sourceLocation{ std::source_location::current() };
 						errors.emplace_back(error::constructError<sourceLocation, error_classes::Parsing, parse_errors::Invalid_Number_Value>(iter - options.rootIter,
 							end - options.rootIter, options.rootIter));
 						skipToNextValue(iter, end);
 						return;
 					}
-					value = V(x);
+					value = V(i);
 				}
 			} else {
-				uint64_t x{};
+				uint64_t i{};
 				int32_t sign = 1;
 				if (*iter == '-') {
 					sign = -1;
@@ -280,7 +279,7 @@ namespace jsonifier_internal {
 				}
 
 				static_assert(sizeof(*iter) == sizeof(char));
-				auto s = parseInt(x, iter);
+				auto s = parseInt(i, iter);
 				if (!s) [[unlikely]] {
 					static constexpr auto sourceLocation{ std::source_location::current() };
 					errors.emplace_back(error::constructError<sourceLocation, error_classes::Parsing, parse_errors::Invalid_Number_Value>(iter - options.rootIter,
@@ -291,23 +290,23 @@ namespace jsonifier_internal {
 
 				if (sign == -1) {
 					static constexpr auto min_abs = uint64_t((std::numeric_limits<V>::max)()) + 1;
-					if (x > min_abs) [[unlikely]] {
+					if (i > min_abs) [[unlikely]] {
 						static constexpr auto sourceLocation{ std::source_location::current() };
 						errors.emplace_back(error::constructError<sourceLocation, error_classes::Parsing, parse_errors::Invalid_Number_Value>(iter - options.rootIter,
 							end - options.rootIter, options.rootIter));
 						skipToNextValue(iter, end);
 						return;
 					}
-					value = V(sign * x);
+					value = V(sign * i);
 				} else {
-					if (x > maximum) [[unlikely]] {
+					if (i > maximum) [[unlikely]] {
 						static constexpr auto sourceLocation{ std::source_location::current() };
 						errors.emplace_back(error::constructError<sourceLocation, error_classes::Parsing, parse_errors::Invalid_Number_Value>(iter - options.rootIter,
 							end - options.rootIter, options.rootIter));
 						skipToNextValue(iter, end);
 						return;
 					}
-					value = V(x);
+					value = V(i);
 				}
 			}
 		} else {

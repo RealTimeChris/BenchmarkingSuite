@@ -23,12 +23,12 @@
 /// Feb 3, 2023
 #pragma once
 
-#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/JsonStructuralIterator.hpp"
-#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/Validator.hpp"
-#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/HashSet.hpp"
-#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/String.hpp"
-#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/Error.hpp"
-#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/Simd.hpp"
+#include <jsonifier/JsonStructuralIterator.hpp>
+#include <jsonifier/Validator.hpp>
+#include <jsonifier/HashSet.hpp>
+#include <jsonifier/String.hpp>
+#include <jsonifier/Error.hpp>
+#include <jsonifier/Simd.hpp>
 
 namespace jsonifier {
 
@@ -88,8 +88,8 @@ namespace jsonifier_internal {
 			optionsReal.rootIter  = reinterpret_cast<const char*>(in.data());
 			if constexpr (!options.minified) {
 				derivedRef.section.reset(in.data(), in.size());
-				simd_structural_iterator iter{ derivedRef.section.begin(), derivedRef.section.end() };
-				simd_structural_iterator end{ derivedRef.section.end(), derivedRef.section.end() };
+				json_structural_iterator iter{ derivedRef.section.begin(), derivedRef.section.end() };
+				json_structural_iterator end{ derivedRef.section.end(), derivedRef.section.end() };
 				if (!iter || (*iter != '{' && *iter != '[')) {
 					static constexpr auto sourceLocation{ std::source_location::current() };
 					getErrors().emplace_back(error::constructError<sourceLocation, error_classes::Parsing, parse_errors::No_Input>(iter - optionsReal.rootIter,
@@ -142,8 +142,8 @@ namespace jsonifier_internal {
 			jsonifier::concepts::unwrap_t<value_type> object{};
 			if constexpr (!options.minified) {
 				derivedRef.section.reset(in.data(), in.size());
-				simd_structural_iterator iter{ derivedRef.section.begin(), derivedRef.section.end() };
-				simd_structural_iterator end{ derivedRef.section.end(), derivedRef.section.end() };
+				json_structural_iterator iter{ derivedRef.section.begin(), derivedRef.section.end() };
+				json_structural_iterator end{ derivedRef.section.end(), derivedRef.section.end() };
 				if (!iter || (*iter != '{' && *iter != '[')) {
 					static constexpr auto sourceLocation{ std::source_location::current() };
 					getErrors().emplace_back(error::constructError<sourceLocation, error_classes::Parsing, parse_errors::No_Input>(iter - optionsReal.rootIter,

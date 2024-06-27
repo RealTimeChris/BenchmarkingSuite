@@ -24,8 +24,8 @@
 /// Nov 13, 2023
 #pragma once
 
-#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/Allocator.hpp"
-#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/Iterator.hpp"
+#include <jsonifier/Allocator.hpp>
+#include <jsonifier/Iterator.hpp>
 
 #include <functional>
 #include <concepts>
@@ -260,11 +260,11 @@ namespace jsonifier_internal {
 
 		void mulU32(uint32_t num) noexcept {
 			uint32_t carry = 0;
-			for (uint64_t x = 0; x < data.size(); x++) {
-				uint64_t res	   = uint64_t(data[x]) * uint64_t(num) + uint64_t(carry);
+			for (uint64_t i = 0; i < data.size(); i++) {
+				uint64_t res	   = uint64_t(data[i]) * uint64_t(num) + uint64_t(carry);
 				uint32_t lowerWord = uint32_t(res);
 				uint32_t upperWord = uint32_t(res >> 32);
-				data[x]			   = lowerWord;
+				data[i]			   = lowerWord;
 				carry			   = upperWord;
 			}
 			if (carry != 0) {
@@ -313,11 +313,11 @@ namespace jsonifier_internal {
 				return -1;
 			if (data.size() > rhs.data.size())
 				return 1;
-			for (auto x = data.size() - 1; x > 0; --x) {
+			for (auto i = data.size() - 1; i > 0; --i) {
 				;
-				if (data[x] < rhs.data[x])
+				if (data[i] < rhs.data[i])
 					return -1;
-				if (data[x] > rhs.data[x])
+				if (data[i] > rhs.data[i])
 					return 1;
 			}
 			return 0;
@@ -330,7 +330,7 @@ namespace jsonifier_internal {
 #define repeat_in_1_18(x) { x(1) x(2) x(3) x(4) x(5) x(6) x(7) x(8) x(9) x(10) x(11) x(12) x(13) x(14) x(15) x(16) x(17) x(18) }
 	constexpr auto eBit = static_cast<uint8_t>('E' ^ 'e');
 
-	template<jsonifier::concepts::float_t value_type> inline bool parseFloat(value_type& value, string_view_ptr& iter) noexcept {
+	template<jsonifier::concepts::float_t value_type, typename iterator_type> JSONIFIER_INLINE bool parseFloat(value_type& value, iterator_type&& iter) noexcept {
 		constexpr auto isVolatile				= std::is_volatile_v<std::remove_reference_t<decltype(value)>>;
 		string_view_ptr sigCut					= nullptr;
 		[[maybe_unused]] string_view_ptr sigEnd = nullptr;
@@ -366,15 +366,15 @@ namespace jsonifier_internal {
 				return false;
 			}
 		}
-#define expr_intg(x) \
-	if ((numTmp = numberSubTable[static_cast<uint8_t>(iter[x])]) <= 9) [[likely]] \
+#define expr_intg(i) \
+	if ((numTmp = numberSubTable[static_cast<uint8_t>(iter[i])]) <= 9) [[likely]] \
 		sig = numTmp + sig * 10; \
 	else { \
-		if constexpr (x > 1) { \
+		if constexpr (i > 1) { \
 			if (*iter == zero) \
 				return false; \
 		} \
-		goto digi_sepr_##x; \
+		goto digi_sepr_##i; \
 	}
 		repeat_in_1_18(expr_intg);
 #undef expr_intg
@@ -394,28 +394,28 @@ namespace jsonifier_internal {
 			return true;
 		}
 		goto digi_intg_more;
-#define expr_sepr(x) \
-	digi_sepr_##x : if ((!digiIsFp(iter[x]))) [[likely]] { \
-		iter += x; \
+#define expr_sepr(i) \
+	digi_sepr_##i : if ((!digiIsFp(iter[i]))) [[likely]] { \
+		iter += i; \
 		value = applySign(sig); \
 		return true; \
 	} \
-	dotPos = iter + x; \
-	if ((iter[x] == '.')) [[likely]] { \
+	dotPos = iter + i; \
+	if ((iter[i] == '.')) [[likely]] { \
 		if (sig == 0) \
-			while (iter[fracZeros + x + 1] == zero) \
+			while (iter[fracZeros + i + 1] == zero) \
 				++fracZeros; \
-		goto digi_frac_##x; \
+		goto digi_frac_##i; \
 	} \
-	iter += x; \
+	iter += i; \
 	sigEnd = iter; \
 	goto digi_exp_more;
 		repeat_in_1_18(expr_sepr)
 #undef expr_sepr
-#define expr_frac(x) \
-	digi_frac_##x : if ((numTmp = numberSubTable[static_cast<uint8_t>(iter[x + 1 + fracZeros])]) <= 9) [[likely]] sig = numTmp + sig * 10; \
+#define expr_frac(i) \
+	digi_frac_##i : if ((numTmp = numberSubTable[static_cast<uint8_t>(iter[i + 1 + fracZeros])]) <= 9) [[likely]] sig = numTmp + sig * 10; \
 	else { \
-		goto digi_stop_##x; \
+		goto digi_stop_##i; \
 	}
 			repeat_in_1_18(expr_frac)
 #undef expr_frac
@@ -423,8 +423,8 @@ namespace jsonifier_internal {
 		if (uint8_t(numberSubTable[static_cast<uint8_t>(*iter)]) > 9)
 			goto digi_frac_end;
 		goto digi_frac_more;
-#define expr_stop(x) \
-	digi_stop_##x : iter += x + 1 + fracZeros; \
+#define expr_stop(i) \
+	digi_stop_##i : iter += i + 1 + fracZeros; \
 	goto digi_frac_end;
 		repeat_in_1_18(expr_stop)
 #undef expr_stop

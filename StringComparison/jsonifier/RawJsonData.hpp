@@ -23,15 +23,15 @@
 /// Feb 20, 2023
 #pragma once
 
-#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/Derailleur.hpp"
-#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/HashSet.hpp"
-#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/String.hpp"
+#include <jsonifier/Derailleur.hpp>
+#include <jsonifier/HashSet.hpp>
+#include <jsonifier/String.hpp>
 
 namespace std {
 
-	template<jsonifier::concepts::string_t string_type> struct hash<string_type> : public jsonifier_internal::simd_hash {
+	template<jsonifier::concepts::string_t string_type> struct hash<string_type> : public jsonifier_internal::fnv1a_hash {
 		JSONIFIER_INLINE uint64_t operator()(const string_type& string) const {
-			return jsonifier_internal::simd_hash::operator()(string.data(), string.size(), 0);
+			return jsonifier_internal::fnv1a_hash::operator()(string.data(), string.size(), 0);
 		}
 	};
 
@@ -64,7 +64,7 @@ namespace jsonifier_internal {
 
 	template<> JSONIFIER_INLINE bool constructValueFromRawJsonData<bool>(const jsonifier::string& newData);
 
-	JSONIFIER_INLINE jsonifier::json_type getvalue_type(uint8_t charToCheck) {
+	JSONIFIER_INLINE jsonifier::json_type getValueType(uint8_t charToCheck) {
 		if (jsonifier_internal::isNumberType(charToCheck)) [[likely]] {
 			return jsonifier::json_type::Number;
 		} else if (jsonifier_internal::boolTable[charToCheck]) [[likely]] {
@@ -113,7 +113,7 @@ namespace jsonifier {
 
 		JSONIFIER_INLINE json_type getType() const {
 			if (jsonData.size() > 0) {
-				return jsonifier_internal::getvalue_type(static_cast<uint8_t>(jsonData[0]));
+				return jsonifier_internal::getValueType(static_cast<uint8_t>(jsonData[0]));
 			} else {
 				return json_type::Unset;
 			}

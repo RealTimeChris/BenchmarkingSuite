@@ -23,9 +23,9 @@
 /// Feb 3, 2023
 #pragma once
 
-#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/JsonStructuralIterator.hpp"
-#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/Minifier.hpp"
-#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/Simd.hpp"
+#include <jsonifier/JsonStructuralIterator.hpp>
+#include <jsonifier/Minifier.hpp>
+#include <jsonifier/Simd.hpp>
 
 namespace jsonifier_internal {
 

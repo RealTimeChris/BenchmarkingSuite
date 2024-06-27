@@ -23,7 +23,7 @@
 /// Feb 3, 2023
 #pragma once
 
-#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/TypeEntities.hpp"
+#include <jsonifier/TypeEntities.hpp>
 
 namespace jsonifier_internal {
 
@@ -366,9 +366,9 @@ namespace jsonifier_internal {
 		constexpr auto joined_arr = []() {
 			constexpr size_t len = (Strs.size() + ... + 0);
 			std::array<char, len + 1> arr{};
-			auto append = [x = 0ull, &arr](auto& s) mutable {
+			auto append = [i = 0ull, &arr](auto& s) mutable {
 				for (char c: s)
-					arr[x++] = c;
+					arr[i++] = c;
 			};
 			(append(Strs), ...);
 			arr[len] = 0;

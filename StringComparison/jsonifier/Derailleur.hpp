@@ -24,8 +24,8 @@
 #pragma once
 
 #include <jsonifier/JsonStructuralIterator.hpp>
-#include <jsonifier/Error.hpp>
 #include <jsonifier/Config.hpp>
+#include <jsonifier/Error.hpp>
 
 namespace jsonifier_internal {
 
@@ -466,7 +466,7 @@ namespace jsonifier_internal {
 			jsonifier::string_view newKey{ start, size_t(iter - start) };
 			return newKey;
 		}
-	}
+	}	
 
 	template<typename value_type, size_t I> constexpr jsonifier::string_view getKey() noexcept {
 		constexpr auto& first = std::get<0>(std::get<I>(jsonifier::concepts::core_v<value_type>));
@@ -474,7 +474,7 @@ namespace jsonifier_internal {
 		if constexpr (std::is_member_pointer_v<T0>) {
 			return getName<first>();
 		} else {
-			return { first };
+			return static_cast<jsonifier::string_view>(first);
 		}
 	}
 
@@ -490,7 +490,7 @@ namespace jsonifier_internal {
 			}
 			return keyStatsHelper<value_type, index + 1, maxIndex>(stats);
 		} else {
-			if (maxIndex > 0) {
+			if constexpr (maxIndex > 0) {
 				stats.lengthRange = stats.maxLength - stats.minLength;
 			}
 			return stats;

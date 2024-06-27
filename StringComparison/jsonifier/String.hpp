@@ -23,8 +23,8 @@
 /// Feb 20, 2023
 #pragma once
 
-#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/Vector.hpp"
-#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/Hash.hpp"
+#include <jsonifier/Vector.hpp>
+#include <jsonifier/Hash.hpp>
 
 namespace jsonifier_internal {
 

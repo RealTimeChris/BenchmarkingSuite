@@ -21,14 +21,13 @@
 */
 /// https://github.com/RealTimeChris/jsonifier
 /// Feb 3, 2023
-/// Most of the code string1 this header was sampled from simdjson - https://github.com/simdjson
 #pragma once
 
-#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/Allocator.hpp"
+#include <jsonifier/Allocator.hpp>
 
-#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/Error.hpp"
-#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/StrToD.hpp"
-#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/Simd.hpp"
+#include <jsonifier/Error.hpp>
+#include <jsonifier/StrToD.hpp>
+#include <jsonifier/Simd.hpp>
 
 namespace jsonifier_internal {
 
@@ -118,8 +117,8 @@ namespace jsonifier_internal {
 		uint32_t highBitsMask = (1ul << (6ul * numBytes)) - 1ul;
 		uint32_t utf8HighBits = simd_internal::pdep(codePoint, highBitsMask);
 		std::memcpy(c, utf8Table[numBytes - 1], numBytes);
-		for (uint32_t x = 0; x < numBytes; ++x) {
-			c[x] |= uint8_t(utf8HighBits & 0xFF);
+		for (uint32_t i = 0; i < numBytes; ++i) {
+			c[i] |= uint8_t(utf8HighBits & 0xFF);
 			utf8HighBits >>= 8;
 		}
 		return numBytes;
@@ -641,7 +640,7 @@ namespace jsonifier_internal {
 						string2 += nextEscapeable;
 						string1 += nextEscapeable;
 						std::memcpy(string2, &escapeChar, 2);
-						string2 += 2ULL;
+						string2 += 2ull;
 						--lengthNew;
 						++string1;
 					} else {
@@ -673,7 +672,7 @@ namespace jsonifier_internal {
 						string2 += nextEscapeable;
 						string1 += nextEscapeable;
 						std::memcpy(string2, &escapeChar, 2);
-						string2 += 2ULL;
+						string2 += 2ull;
 						--lengthNew;
 						++string1;
 					} else {
@@ -705,7 +704,7 @@ namespace jsonifier_internal {
 						string2 += nextEscapeable;
 						string1 += nextEscapeable;
 						std::memcpy(string2, &escapeChar, 2);
-						string2 += 2ULL;
+						string2 += 2ull;
 						--lengthNew;
 						++string1;
 					} else {
@@ -736,7 +735,7 @@ namespace jsonifier_internal {
 						string2 += nextEscapeable;
 						string1 += nextEscapeable;
 						std::memcpy(string2, &escapeChar, 2);
-						string2 += 2ULL;
+						string2 += 2ull;
 						--lengthNew;
 						++string1;
 					} else {

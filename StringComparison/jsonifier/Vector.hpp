@@ -23,9 +23,9 @@
 /// Feb 20, 2023
 #pragma once
 
-#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/Allocator.hpp"
-#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/Iterator.hpp"
-#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/Compare.hpp"
+#include <jsonifier/Allocator.hpp>
+#include <jsonifier/Iterator.hpp>
+#include <jsonifier/Compare.hpp>
 
 namespace jsonifier {
 

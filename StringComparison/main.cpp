@@ -35,10 +35,6 @@ struct sizes_data {
 };
 
 struct media_data {
-	std::optional<std::string> source_status_id_str{};
-	std::optional<double> source_status_id{};
-	std::vector<int64_t> indices{};
-	std::string media_url_https{};
 	std::string expanded_url{};
 	std::string display_url{};
 	std::string media_url{};
@@ -519,9 +515,8 @@ template<> struct jsonifier::core<sizes_data> {
 
 template<> struct jsonifier::core<media_data> {
 	using value_type = media_data;
-	static constexpr auto parseValue =
-		createValue<&value_type::source_status_id_str, &value_type::source_status_id, &value_type::indices, &value_type::media_url_https, &value_type::expanded_url,
-			&value_type::display_url, &value_type::media_url, &value_type::id_str, &value_type::type, &value_type::sizes, &value_type::url, &value_type::id>();
+	static constexpr auto parseValue = createValue<&value_type::expanded_url, &value_type::display_url, &value_type::media_url, &value_type::id_str, &value_type::type,
+		&value_type::sizes, &value_type::url, &value_type::id>();
 };
 
 template<> struct jsonifier::core<url_data> {
@@ -614,9 +609,8 @@ template<> struct glz::meta<sizes_data> {
 
 template<> struct glz::meta<media_data> {
 	using value_type			= media_data;
-	static constexpr auto value = object("source_status_id_str", &value_type::source_status_id_str, "source_status_id", &value_type::source_status_id, "indices",
-		&value_type::indices, "media_url_https", &value_type::media_url_https, "expanded_url", &value_type::expanded_url, "display_url", &value_type::display_url, "media_url",
-		&value_type::media_url, "id_str", &value_type::id_str, "type", &value_type::type, "sizes", &value_type::sizes, "url", &value_type::url, "id", &value_type::id);
+	static constexpr auto value = object("expanded_url", &value_type::expanded_url, "display_url", &value_type::display_url, "media_url", &value_type::media_url, "id_str",
+		&value_type::id_str, "type", &value_type::type, "sizes", &value_type::sizes, "url", &value_type::url, "id", &value_type::id);
 };
 
 template<> struct glz::meta<url_data> {
@@ -855,9 +849,8 @@ int main() {
 
 	static constexpr std::pair<std::string_view, jsonifier::string_view> arrayNew04[]{ { "medium", "medium" }, { "small", "small" }, { "thumb", "thumb" }, { "large", "large" } };
 
-	static constexpr std::pair<std::string_view, jsonifier::string_view> arrayNew05[]{ { "source_status_id_str", "source_status_id_str" },
-		{ "source_status_id", "source_status_id" }, { "indices", "indices" }, { "media_url_https", "media_url_https" }, { "expanded_url", "expanded_url" },
-		{ "display_url", "display_url" }, { "media_url", "media_url" }, { "id_str", "id_str" }, { "type", "type" }, { "sizes", "sizes" }, { "url", "url" }, { "id", "id" } };
+	static constexpr std::pair<std::string_view, jsonifier::string_view> arrayNew05[]{ { "expanded_url", "expanded_url" }, { "display_url", "display_url" },
+		{ "media_url", "media_url" }, { "id_str", "id_str" }, { "type", "type" }, { "sizes", "sizes" }, { "url", "url" }, { "id", "id" } };
 
 	static constexpr std::pair<std::string_view, jsonifier::string_view> arrayNew06[]{ { "indices", "indices" }, { "expanded_url", "expanded_url" },
 		{ "display_url", "display_url" }, { "url", "url" } };
@@ -955,7 +948,7 @@ int main() {
 	
 	auto jsonifierMapNew01{ jsonifier_internal::makeSet<search_metadata_data>() };
 	auto glazeMapNew01{ glz::detail::make_map<search_metadata_data>() };
-	std::cout << "STRING SCALING FACTOR INDEX: " << jsonifierMapNew01.stringScalingFactorIndex << std::endl;
+	std::cout << "STRING SCALING FACTOR INDEX: " << jsonifierMapNew01.stringScalingFactor << std::endl;
 	std::cout << "OBJECT SIZE: " << jsonifierMapNew01.items.size() << std::endl;
 
 	auto jsonifierMapNew02{ jsonifier_internal::makeSet<hashtag>() };
@@ -963,32 +956,32 @@ int main() {
 
 	auto jsonifierMapNew03{ jsonifier_internal::makeSet<large_data>() };
 	auto glazeMapNew03{ glz::detail::make_map<large_data>() };
-	std::cout << "STRING SCALING FACTOR INDEX: " << jsonifierMapNew03.stringScalingFactorIndex << std::endl;
+	std::cout << "STRING SCALING FACTOR INDEX: " << jsonifierMapNew03.stringScalingFactor << std::endl;
 	std::cout << "OBJECT SIZE: " << jsonifierMapNew03.items.size() << std::endl;
 
 	auto jsonifierMapNew04{ jsonifier_internal::makeSet<sizes_data>() };
 	auto glazeMapNew04{ glz::detail::make_map<sizes_data>() };
-	std::cout << "STRING SCALING FACTOR INDEX: " << jsonifierMapNew04.stringScalingFactorIndex << std::endl;
+	std::cout << "STRING SCALING FACTOR INDEX: " << jsonifierMapNew04.stringScalingFactor << std::endl;
 	std::cout << "OBJECT SIZE: " << jsonifierMapNew04.items.size() << std::endl;
 
 	auto jsonifierMapNew05{ jsonifier_internal::makeSet<media_data>() };
 	auto glazeMapNew05{ glz::detail::make_map<media_data>() };
-	std::cout << "STRING SCALING FACTOR INDEX: " << jsonifierMapNew05.stringScalingFactorIndex << std::endl;
+	std::cout << "STRING SCALING FACTOR INDEX: " << jsonifierMapNew05.stringScalingFactor << std::endl;
 	std::cout << "OBJECT SIZE: " << jsonifierMapNew05.items.size() << std::endl;
 
 	auto jsonifierMapNew06{ jsonifier_internal::makeSet<url_data>() };
 	auto glazeMapNew06{ glz::detail::make_map<url_data>() };
-	std::cout << "STRING SCALING FACTOR INDEX: " << jsonifierMapNew06.stringScalingFactorIndex << std::endl;
+	std::cout << "STRING SCALING FACTOR INDEX: " << jsonifierMapNew06.stringScalingFactor << std::endl;
 	std::cout << "OBJECT SIZE: " << jsonifierMapNew06.items.size() << std::endl;
 
 	auto jsonifierMapNew07{ jsonifier_internal::makeSet<user_mention>() };
 	auto glazeMapNew07{ glz::detail::make_map<user_mention>() };
-	std::cout << "STRING SCALING FACTOR INDEX: " << jsonifierMapNew07.stringScalingFactorIndex << std::endl;
+	std::cout << "STRING SCALING FACTOR INDEX: " << jsonifierMapNew07.stringScalingFactor << std::endl;
 	std::cout << "OBJECT SIZE: " << jsonifierMapNew07.items.size() << std::endl;
 
 	auto jsonifierMapNew08{ jsonifier_internal::makeSet<status_entities>() };
 	auto glazeMapNew08{ glz::detail::make_map<status_entities>() };
-	std::cout << "STRING SCALING FACTOR INDEX: " << jsonifierMapNew08.stringScalingFactorIndex << std::endl;
+	std::cout << "STRING SCALING FACTOR INDEX: " << jsonifierMapNew08.stringScalingFactor << std::endl;
 	std::cout << "OBJECT SIZE: " << jsonifierMapNew08.items.size() << std::endl;
 
 	auto jsonifierMapNew09{ jsonifier_internal::makeSet<metadata_data>() };
@@ -1002,19 +995,19 @@ int main() {
 
 	auto jsonifierMapNew12{ jsonifier_internal::makeSet<twitter_user>() };
 	auto glazeMapNew12{ glz::detail::make_map<twitter_user>() };
-	std::cout << "STRING SCALING FACTOR INDEX: " << jsonifierMapNew12.stringScalingFactorIndex << std::endl;
+	std::cout << "STRING SCALING FACTOR INDEX: " << jsonifierMapNew12.stringScalingFactor << std::endl;
 	std::cout << "NUM GROUPS: " << jsonifierMapNew12.numGroups << std::endl;
 	std::cout << "BUCKET SIZE: " << jsonifierMapNew12.bucketSize << std::endl;
 
 	auto jsonifierMapNew13{ jsonifier_internal::makeSet<retweeted_status_data>() };
 	auto glazeMapNew13{ glz::detail::make_map<retweeted_status_data>() };
-	std::cout << "STRING SCALING FACTOR INDEX: " << jsonifierMapNew13.stringScalingFactorIndex << std::endl;
+	std::cout << "STRING SCALING FACTOR INDEX: " << jsonifierMapNew13.stringScalingFactor << std::endl;
 	std::cout << "NUM GROUPS: " << jsonifierMapNew13.numGroups << std::endl;
 	std::cout << "BUCKET SIZE: " << jsonifierMapNew13.bucketSize << std::endl;
 
 	auto jsonifierMapNew14{ jsonifier_internal::makeSet<status_data>() };
 	auto glazeMapNew14{ glz::detail::make_map<status_data>() };
-	std::cout << "STRING SCALING FACTOR INDEX: " << jsonifierMapNew14.stringScalingFactorIndex << std::endl;
+	std::cout << "STRING SCALING FACTOR INDEX: " << jsonifierMapNew14.stringScalingFactor << std::endl;
 	std::cout << "NUM GROUPS: " << jsonifierMapNew14.numGroups << std::endl;
 	std::cout << "BUCKET SIZE: " << jsonifierMapNew14.bucketSize << std::endl;
 
@@ -1026,23 +1019,23 @@ int main() {
 
 	auto jsonifierMapNew17{ jsonifier_internal::makeSet<permission_overwrite>() };
 	auto glazeMapNew17{ glz::detail::make_map<permission_overwrite>() };
-	std::cout << "STRING SCALING FACTOR INDEX: " << jsonifierMapNew17.stringScalingFactorIndex << std::endl;
+	std::cout << "STRING SCALING FACTOR INDEX: " << jsonifierMapNew17.stringScalingFactor << std::endl;
 	std::cout << "OBJECT SIZE: " << jsonifierMapNew17.items.size() << std::endl;
 
 	auto jsonifierMapNew18{ jsonifier_internal::makeSet<channel_data>() };
 	auto glazeMapNew18{ glz::detail::make_map<channel_data>() };
-	std::cout << "STRING SCALING FACTOR INDEX: " << jsonifierMapNew18.stringScalingFactorIndex << std::endl;
+	std::cout << "STRING SCALING FACTOR INDEX: " << jsonifierMapNew18.stringScalingFactor << std::endl;
 	std::cout << "NUM GROUPS: " << jsonifierMapNew18.numGroups << std::endl;
 	std::cout << "BUCKET SIZE: " << jsonifierMapNew18.bucketSize << std::endl;
 
 	auto jsonifierMapNew19{ jsonifier_internal::makeSet<user_data>() };
 	auto glazeMapNew19{ glz::detail::make_map<user_data>() };
-	std::cout << "STRING SCALING FACTOR INDEX: " << jsonifierMapNew19.stringScalingFactorIndex << std::endl;
+	std::cout << "STRING SCALING FACTOR INDEX: " << jsonifierMapNew19.stringScalingFactor << std::endl;
 	std::cout << "OBJECT SIZE: " << jsonifierMapNew19.items.size() << std::endl;
 
 	auto jsonifierMapNew20{ jsonifier_internal::makeSet<member_data>() };
 	auto glazeMapNew20{ glz::detail::make_map<member_data>() };
-	std::cout << "STRING SCALING FACTOR INDEX: " << jsonifierMapNew20.stringScalingFactorIndex << std::endl;
+	std::cout << "STRING SCALING FACTOR INDEX: " << jsonifierMapNew20.stringScalingFactor << std::endl;
 	std::cout << "OBJECT SIZE: " << jsonifierMapNew20.items.size() << std::endl;
 
 	auto jsonifierMapNew21{ jsonifier_internal::makeSet<tags_data>() };
@@ -1050,18 +1043,18 @@ int main() {
 
 	auto jsonifierMapNew22{ jsonifier_internal::makeSet<role_data>() };
 	auto glazeMapNew22{ glz::detail::make_map<role_data>() };
-	std::cout << "STRING SCALING FACTOR INDEX: " << jsonifierMapNew22.stringScalingFactorIndex << std::endl;
+	std::cout << "STRING SCALING FACTOR INDEX: " << jsonifierMapNew22.stringScalingFactor << std::endl;
 	std::cout << "OBJECT SIZE: " << jsonifierMapNew22.items.size() << std::endl;
 
 	auto jsonifierMapNew23{ jsonifier_internal::makeSet<guild_data>() };
 	auto glazeMapNew23{ glz::detail::make_map<guild_data>() };
-	std::cout << "STRING SCALING FACTOR INDEX: " << jsonifierMapNew23.stringScalingFactorIndex << std::endl;
+	std::cout << "STRING SCALING FACTOR INDEX: " << jsonifierMapNew23.stringScalingFactor << std::endl;
 	std::cout << "NUM GROUPS: " << jsonifierMapNew23.numGroups << std::endl;
 	std::cout << "BUCKET SIZE: " << jsonifierMapNew23.bucketSize << std::endl;
 
 	auto jsonifierMapNew24{ jsonifier_internal::makeSet<discord_message>() };
 	auto glazeMapNew24{ glz::detail::make_map<discord_message>() };
-	std::cout << "STRING SCALING FACTOR INDEX: " << jsonifierMapNew24.stringScalingFactorIndex << std::endl;
+	std::cout << "STRING SCALING FACTOR INDEX: " << jsonifierMapNew24.stringScalingFactor << std::endl;
 	std::cout << "OBJECT SIZE: " << jsonifierMapNew24.items.size() << std::endl;
 
 	bnch_swt::benchmark_suite<"Find Test">::benchmark<"glz::detail::frozenMap<search_metadata_data>", "steelblue", 1000>([&] {
@@ -1077,13 +1070,12 @@ int main() {
 	bnch_swt::benchmark_suite<"Find Test">::benchmark<"jsonifier_internal::frozenMap<search_metadata_data>", "steelblue", 1000>([&] {
 		for (uint64_t x = 0; x < 1024; ++x) {
 			for (uint64_t y = 0; y < std::size(arrayNew01); ++y) {
-				static constexpr auto keyStats = jsonifier_internal::keyStats<search_metadata_data>();
-				auto newString				   = *jsonifierMapNew01.find<keyStats>(arrayNew01[y].first);
+				auto newString = *jsonifierMapNew01.find(arrayNew01[y].first);
 				bnch_swt::doNotOptimizeAway(newString);
 			}
 		}
 		return;
-	}); /*
+	});
 
 	bnch_swt::benchmark_suite<"Find Test">::benchmark<"glz::detail::frozenMap<hashtag>", "steelblue", 1000>([&] {
 		for (uint64_t x = 0; x < 1024; ++x) {
@@ -1504,8 +1496,7 @@ int main() {
 		}
 		return;
 	});
-	
-	*/
+
 	bnch_swt::benchmark_suite<"Find Test">::benchmark<"glz::detail::frozenMap<guild_data>", "steelblue", 1000>([&] {
 		for (uint64_t x = 0; x < 1024; ++x) {
 			for (uint64_t y = 0; y < std::size(arrayNew23); ++y) {
@@ -1515,23 +1506,11 @@ int main() {
 		}
 		return;
 	});
-	for (uint64_t y = 0; y < std::size(arrayNew23); ++y) {
-		static constexpr auto keyStats = jsonifier_internal::keyStats<guild_data>();
-		auto newString				   = *jsonifierMapNew23.find<keyStats>(arrayNew23[y].first);
-		std::visit(
-			[&](auto& value) {
-				std::cout << "KEY: " << typeid(value).name() << std::endl;
-			},
-			newString);
-		
-		bnch_swt::doNotOptimizeAway(newString);
-	}
 
 	bnch_swt::benchmark_suite<"Find Test">::benchmark<"jsonifier_internal::frozenMap<guild_data>", "steelblue", 1000>([&] {
 		for (uint64_t x = 0; x < 1024; ++x) {
 			for (uint64_t y = 0; y < std::size(arrayNew23); ++y) {
-				static constexpr auto keyStats = jsonifier_internal::keyStats<guild_data>();
-				auto newString				   = *jsonifierMapNew23.find<keyStats>(arrayNew23[y].first);
+				auto newString = *jsonifierMapNew23.find(arrayNew23[y].first);
 				bnch_swt::doNotOptimizeAway(newString);
 			}
 		}
@@ -1551,13 +1530,13 @@ int main() {
 	bnch_swt::benchmark_suite<"Find Test">::benchmark<"jsonifier_internal::frozenMap<discord_message>", "steelblue", 1000>([&] {
 		for (uint64_t x = 0; x < 1024; ++x) {
 			for (uint64_t y = 0; y < std::size(arrayNew24); ++y) {
-				static constexpr auto keyStats = jsonifier_internal::keyStats<discord_message>();
-				auto newString				   = *jsonifierMapNew24.find<keyStats>(arrayNew24[y].first);
+				auto newString = *jsonifierMapNew24.find(arrayNew24[y].first);
 				bnch_swt::doNotOptimizeAway(newString);
 			}
 		}
 		return;
 	});
+
 
 	
 	bnch_swt::benchmark_suite<"Find Test">::writeJsonData("../../test.json");

@@ -23,7 +23,7 @@
 /// Feb 3, 2023
 #pragma once
 
-#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/Config.hpp"
+#include <jsonifier/Config.hpp>
 
 namespace jsonifier_internal {
 

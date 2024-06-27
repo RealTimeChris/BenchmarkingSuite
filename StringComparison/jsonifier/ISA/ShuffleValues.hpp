@@ -23,8 +23,8 @@
 /// Feb 3, 2023
 #pragma once
 
-#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/ISA/Fallback.hpp"
-#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/ISA/Neon.hpp"
+#include <jsonifier/ISA/Fallback.hpp>
+#include <jsonifier/ISA/Neon.hpp>
 
 namespace simd_internal {
 

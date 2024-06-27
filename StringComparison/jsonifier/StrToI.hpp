@@ -24,7 +24,7 @@
 /// Nov 13, 2023
 #pragma once
 
-#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/Allocator.hpp"
+#include <jsonifier/Allocator.hpp>
 
 #include <concepts>
 #include <cstdint>
@@ -42,7 +42,7 @@ namespace jsonifier_internal {
 		return a <= b;
 	}
 
-	template<jsonifier::concepts::integer_t value_type_new> JSONIFIER_INLINE bool parseInt(value_type_new& value, auto& iter) {
+	template<jsonifier::concepts::integer_t value_type_new, typename iterator_type> JSONIFIER_INLINE bool parseInt(value_type_new& value, iterator_type&& iter) {
 		using value_type		  = jsonifier::concepts::unwrap_t<value_type_new>;
 		uint64_t sig	 = uint64_t(numberSubTable[static_cast<uint8_t>(*iter)]);
 		uint64_t numTmp;
@@ -51,15 +51,15 @@ namespace jsonifier_internal {
 			return false;
 		}
 
-#define expr_intg(x) \
-	if (numTmp = numberSubTable[static_cast<uint8_t>(iter[x])]; numTmp <= 9) [[likely]] \
+#define expr_intg(i) \
+	if (numTmp = numberSubTable[static_cast<uint8_t>(iter[i])]; numTmp <= 9) [[likely]] \
 		sig = numTmp + sig * 10; \
 	else { \
-		if constexpr (x > 1) { \
+		if constexpr (i > 1) { \
 			if (*iter == zero) \
 				return false; \
 		} \
-		goto digi_sepr_##x; \
+		goto digi_sepr_##i; \
 	}
 		repeat_in_1_18(expr_intg);
 #undef expr_intg
@@ -73,13 +73,13 @@ namespace jsonifier_internal {
 			return true;
 		}
 
-#define expr_sepr(x) \
-	digi_sepr_##x : if (!digiIsFp(uint8_t(iter[x]))) [[likely]] { \
-		iter += x; \
+#define expr_sepr(i) \
+	digi_sepr_##i : if (!digiIsFp(uint8_t(iter[i]))) [[likely]] { \
+		iter += i; \
 		value = sig; \
 		return true; \
 	} \
-	iter += x; \
+	iter += i; \
 	return false;
 		repeat_in_1_18(expr_sepr)
 #undef expr_sepr

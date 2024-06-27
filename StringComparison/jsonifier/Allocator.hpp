@@ -23,7 +23,7 @@
 /// Feb 3, 2023
 #pragma once
 
-#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/ISA/SimdCommon.hpp"
+#include <jsonifier/ISA/SimdCommon.hpp>
 #include <memory_resource>
 
 namespace jsonifier_internal {

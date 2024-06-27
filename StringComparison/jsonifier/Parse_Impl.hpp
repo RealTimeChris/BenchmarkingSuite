@@ -23,10 +23,10 @@
 /// Feb 20, 2023
 #pragma once
 
-#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/NumberUtils.hpp"
-#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/StringUtils.hpp"
-#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/Derailleur.hpp"
-#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/Parser.hpp"
+#include <jsonifier/NumberUtils.hpp>
+#include <jsonifier/StringUtils.hpp>
+#include <jsonifier/Derailleur.hpp>
+#include <jsonifier/Parser.hpp>
 
 #include <memory>
 
@@ -76,8 +76,8 @@ namespace jsonifier_internal {
 						return parseObjects<options, false>(value, iter, end);
 					}
 				}
-				static constexpr auto keyStatsVal = keyStats<value_type>();
-				if (const auto& memberIt = frozenSet.find<keyStatsVal>(key); memberIt != frozenSet.end()) [[likely]] {
+
+				if (const auto& memberIt = frozenSet.find(key); memberIt != frozenSet.end()) [[likely]] {
 					if (*iter == ':') [[likely]] {
 						++iter;
 					} else {
@@ -262,7 +262,7 @@ namespace jsonifier_internal {
 
 			auto n		 = value.size();
 			auto iterNew = value.begin();
-			for (size_t x = 0; x < n; ++x) {
+			for (size_t i = 0; i < n; ++i) {
 				parse_impl<derived_type, typename jsonifier::concepts::unwrap_t<value_type_new>::value_type>::template impl<options>(*(iterNew++), iter, end);
 
 				if (*iter == ',') [[likely]] {
@@ -317,7 +317,7 @@ namespace jsonifier_internal {
 
 			static constexpr auto n = value.size();
 			auto iterNew			= value.begin();
-			for (size_t x = 0; x < n; ++x) {
+			for (size_t i = 0; i < n; ++i) {
 				parse_impl<derived_type, decltype(value[0])>::template impl<options>(*(iterNew++), iter, end);
 
 				if (*iter == ',') [[likely]] {
@@ -355,7 +355,7 @@ namespace jsonifier_internal {
 		template<const parse_options_internal<derived_type>& options, jsonifier::concepts::raw_json_t value_type, typename iterator_type>
 		JSONIFIER_INLINE static void impl(value_type&& value, iterator_type&& iter, iterator_type&& end) {
 			auto newPtr = iter.operator->();
-			skipToNextValue(iter, end);
+			iter.skipToNextValue();
 			int64_t newSize = iter.operator->() - newPtr;
 			if (newSize > 0) [[likely]] {
 				jsonifier::string newString{};

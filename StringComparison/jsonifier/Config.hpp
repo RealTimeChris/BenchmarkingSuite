@@ -23,7 +23,7 @@
 /// Feb 3, 2023
 #pragma once
 
-#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/TypeEntities.hpp"
+#include <jsonifier/TypeEntities.hpp>
 #include <functional>
 #include <iostream>
 #include <sstream>
@@ -231,14 +231,14 @@ JSONIFIER_INLINE void prefetchInternal(const void* ptr) {
 	PREFETCH(ptr)
 }
 
-#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/ISA/AVX.hpp"
-#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/ISA/Lzcount.hpp"
-#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/ISA/Popcount.hpp"
-#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/ISA/Bmi2.hpp"
-#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/ISA/Bmi.hpp"
-#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/ISA/CollectIndices.hpp"
-#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/ISA/CompareValues.hpp"
-#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/ISA/Fallback.hpp"
+#include <jsonifier/ISA/AVX.hpp>
+#include <jsonifier/ISA/Lzcount.hpp>
+#include <jsonifier/ISA/Popcount.hpp>
+#include <jsonifier/ISA/Bmi2.hpp>
+#include <jsonifier/ISA/Bmi.hpp>
+#include <jsonifier/ISA/CollectIndices.hpp>
+#include <jsonifier/ISA/CompareValues.hpp>
+#include <jsonifier/ISA/Fallback.hpp>
 
 namespace jsonifier_internal {
 

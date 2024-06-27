@@ -27,17 +27,17 @@
 	#define NOMINMAX
 #endif
 
-#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/JsonStructuralIterator.hpp"
-#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/Parse_Impl.hpp"
-#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/Serialize_Impl.hpp"
-#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/JsonifierCore.hpp"
-#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/Prettify_Impl.hpp"
+#include <jsonifier/JsonStructuralIterator.hpp>
+#include <jsonifier/Parse_Impl.hpp>
+#include <jsonifier/Serialize_Impl.hpp>
+#include <jsonifier/JsonifierCore.hpp>
+#include <jsonifier/Prettify_Impl.hpp>
 
-#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/RawJsonData.hpp"
-#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/Minify_Impl.hpp"
-#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/Serializer.hpp"
-#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/HashSet.hpp"
-#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/Parser.hpp"
-#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/String.hpp"
-#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/Tuple.hpp"
-#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/Simd.hpp"
+#include <jsonifier/RawJsonData.hpp>
+#include <jsonifier/Minify_Impl.hpp>
+#include <jsonifier/Serializer.hpp>
+#include <jsonifier/HashSet.hpp>
+#include <jsonifier/Parser.hpp>
+#include <jsonifier/String.hpp>
+#include <jsonifier/Tuple.hpp>
+#include <jsonifier/Simd.hpp>

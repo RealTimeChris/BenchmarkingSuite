@@ -23,7 +23,7 @@
 /// Feb 3, 2023
 #pragma once
 
-#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/TypeEntities.hpp"
+#include <jsonifier/TypeEntities.hpp>
 
 namespace simd_internal {
 

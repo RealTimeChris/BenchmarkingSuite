@@ -23,9 +23,9 @@
 /// Feb 3, 2023
 #pragma once
 
-#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/ISA/CompareValues.hpp"
-#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/ISA/GatherValues.hpp"
-#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/ISA/ShuffleValues.hpp"
+#include <jsonifier/ISA/CompareValues.hpp>
+#include <jsonifier/ISA/GatherValues.hpp>
+#include <jsonifier/ISA/ShuffleValues.hpp>
 
 namespace jsonifier_internal {
 

@@ -23,8 +23,8 @@
 /// Feb 3, 2023
 #pragma once
 
-#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/StringView.hpp"
-#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/Simd.hpp"
+#include <jsonifier/StringView.hpp>
+#include <jsonifier/Simd.hpp>
 #include <source_location>
 #include <unordered_map>
 #include <exception>

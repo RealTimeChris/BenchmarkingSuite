@@ -23,7 +23,7 @@
 /// Feb 20, 2023
 #pragma once
 
-#include "C:/users/chris/source/repos/benchmarkingsuite/stringcomparison/jsonifier/Validator.hpp"
+#include <jsonifier/Validator.hpp>
 
 namespace jsonifier_internal {
 
@@ -177,7 +177,7 @@ namespace jsonifier_internal {
 						++newPtr;
 					} else if (*newPtr == 0x75u) {
 						++newPtr;
-						for (uint64_t x = 0ull; x < 4ull; ++x) {
+						for (uint64_t i = 0ull; i < 4ull; ++i) {
 							if (!hexDigits[static_cast<uint64_t>(*newPtr)]) {
 								static constexpr auto sourceLocation{ std::source_location::current() };
 								validatorRef.getErrors().emplace_back(error::constructError<sourceLocation, error_classes::Validating, validate_errors::Invalid_Escape_Characters>(
@@ -192,7 +192,7 @@ namespace jsonifier_internal {
 							iter - validatorRef.rootIter, iter.getEndPtr() - validatorRef.rootIter, validatorRef.rootIter));
 						return false;
 					}
-				} else if (*newPtr < 0x20u) {
+				} else if (static_cast<uint8_t>(*newPtr) < 0x20u) {
 					static constexpr auto sourceLocation{ std::source_location::current() };
 					validatorRef.getErrors().emplace_back(error::constructError<sourceLocation, error_classes::Validating, validate_errors::Invalid_String_Characters>(
 						iter - validatorRef.rootIter, iter.getEndPtr() - validatorRef.rootIter, validatorRef.rootIter));
@@ -220,7 +220,7 @@ namespace jsonifier_internal {
 			auto endPtr	 = iter.operator->();
 			newPtr		 = skipWs(iter);
 			auto newSize = endPtr - newPtr;
-			if (newSize > 1 && *newPtr == 0x30u && numberTable[static_cast<uint64_t>(*(newPtr + 1))]) {
+			if (!iter || (newSize > 1 && *newPtr == 0x30u && numberTable[static_cast<uint64_t>(*(newPtr + 1))])) {
 				static constexpr auto sourceLocation{ std::source_location::current() };
 				validatorRef.getErrors().emplace_back(error::constructError<sourceLocation, error_classes::Validating, validate_errors::Invalid_Number_Value>(
 					iter - validatorRef.rootIter, iter.getEndPtr() - validatorRef.rootIter, validatorRef.rootIter));
@@ -259,7 +259,7 @@ namespace jsonifier_internal {
 			consumeDigits(1);
 
 			if (consumeChar(0x2Eu)) {
-				if (!consumeDigits(1)) {
+				if (!iter || !consumeDigits(1)) {
 					static constexpr auto sourceLocation{ std::source_location::current() };
 					validatorRef.getErrors().emplace_back(error::constructError<sourceLocation, error_classes::Validating, validate_errors::Invalid_Number_Value>(
 						iter - validatorRef.rootIter, iter.getEndPtr() - validatorRef.rootIter, validatorRef.rootIter));
@@ -270,7 +270,7 @@ namespace jsonifier_internal {
 				bool didWeFail{ false };
 				consumeSign();
 				didWeFail = !consumeDigits(1);
-				if (didWeFail) {
+				if (!iter || didWeFail) {
 					static constexpr auto sourceLocation{ std::source_location::current() };
 					validatorRef.getErrors().emplace_back(error::constructError<sourceLocation, error_classes::Validating, validate_errors::Invalid_Number_Value>(
 						iter - validatorRef.rootIter, iter.getEndPtr() - validatorRef.rootIter, validatorRef.rootIter));
@@ -296,9 +296,9 @@ namespace jsonifier_internal {
 			static constexpr char falseStr[]{ "false" };
 			static constexpr char trueStr[]{ "true" };
 			newPtr = skipWs(newPtr);
-			if (std::memcmp(newPtr, trueStr, std::strlen(trueStr)) == 0) {
+			if (iter && std::memcmp(newPtr, trueStr, std::strlen(trueStr)) == 0) {
 				newPtr += std::size(trueStr) - 1;
-			} else if (std::memcmp(newPtr, falseStr, std::strlen(falseStr)) == 0) {
+			} else if (iter && std::memcmp(newPtr, falseStr, std::strlen(falseStr)) == 0) {
 				newPtr += std::size(falseStr) - 1;
 			} else {
 				static constexpr auto sourceLocation{ std::source_location::current() };
