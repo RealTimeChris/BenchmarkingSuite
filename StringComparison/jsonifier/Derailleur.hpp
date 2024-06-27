@@ -444,7 +444,7 @@ namespace jsonifier_internal {
 
 		iter += stats.minLength;
 
-		if constexpr (lengthRange == 0) {
+		 if constexpr (lengthRange == 0) {
 			return { start, stats.minLength };
 		} else if constexpr (lengthRange == 1) {
 			if (*iter != '"') {
@@ -458,13 +458,66 @@ namespace jsonifier_internal {
 				}
 			}
 			return { start, size_t(iter - start) };
-		} else {
-			memchar<'"'>(iter, stats.maxLength + stats.minLength);
-			if (*iter != '"') {
-				++iter;
+		} else if constexpr (lengthRange == 7) {
+			uint64_t chunk;
+			std::memcpy(&chunk, iter, 8);
+			const uint64_t testChunk = hasValue<'"', uint64_t>(chunk);
+			if (testChunk) [[likely]] {
+				iter += (simd_internal::tzcnt(testChunk) >> 3);
 			}
-			jsonifier::string_view newKey{ start, size_t(iter - start) };
-			return newKey;
+			return { start, size_t(iter - start) };
+		} else if constexpr (lengthRange > 15) {
+			uint64_t chunk;
+			std::memcpy(&chunk, iter, 8);
+			uint64_t testChunk = hasValue<'"', uint64_t>(chunk);
+			if (testChunk) {
+				goto finish;
+			}
+
+			iter += 8;
+			std::memcpy(&chunk, iter, 8);
+			testChunk = hasValue<'"', uint64_t>(chunk);
+			if (testChunk) {
+				goto finish;
+			}
+
+			iter += 8;
+			static constexpr auto rest = lengthRange + 1 - 16;
+			chunk					   = 0;
+			std::memcpy(&chunk, iter, rest);
+			testChunk = hasValue<'"', uint64_t>(chunk);
+			if (!testChunk) {
+				testChunk = 1;
+			}
+
+		finish:
+			iter += (simd_internal::tzcnt(testChunk) >> 3);
+			return { start, size_t(iter - start) };
+		} else if constexpr (lengthRange > 7) {
+			uint64_t chunk;
+			std::memcpy(&chunk, iter, 8);
+			uint64_t testChunk = hasValue<'"', uint64_t>(chunk);
+			if (testChunk) {
+				iter += (simd_internal::tzcnt(testChunk) >> 3);
+			} else {
+				iter += 8;
+				static constexpr auto rest = lengthRange + 1 - 8;
+				chunk					   = 0;
+				std::memcpy(&chunk, iter, rest);
+				testChunk = hasValue<'"', uint64_t>(chunk);
+				if (testChunk) {
+					iter += (simd_internal::tzcnt(testChunk) >> 3);
+				}
+			}
+			return { start, size_t(iter - start) };
+		} else {
+			uint64_t chunk{};
+			std::memcpy(&chunk, iter, lengthRange + 1);
+			const uint64_t testChunk = hasValue<'"', uint64_t>(chunk);
+			if (testChunk) [[likely]] {
+				iter += (simd_internal::tzcnt(testChunk) >> 3);
+			}
+			return { start, size_t(iter - start) };
 		}
 	}	
 
