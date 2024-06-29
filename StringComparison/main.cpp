@@ -948,114 +948,114 @@ constexpr std::pair<std::string_view, std::string_view> arrayNew04[]{ { "mediumt
 
 	constexpr std::pair<std::string_view, std::string_view> arrayNew24[]{ { "t", "t" }, { "d", "d" }, { "op", "op" }, { "s", "s" } };
 	
-	auto jsonifierMapNew01{ jsonifier_internal::makeSet<search_metadata_data>() };
-	auto glazeMapNew01{ glz::detail::make_map<search_metadata_data>() };
+	static auto constexpr jsonifierMapNew01{ jsonifier_internal::makeSet<search_metadata_data>() };
+	static auto constexpr glazeMapNew01{ glz::detail::make_map<search_metadata_data>() };
 	std::cout << "STRING SCALING FACTOR INDEX: " << jsonifierMapNew01.stringScalingFactor<< std::endl;
 	std::cout << "OBJECT SIZE: " << jsonifierMapNew01.items.size() << std::endl;
 
-	auto jsonifierMapNew02{ jsonifier_internal::makeSet<hashtag>() };
-	auto glazeMapNew02{ glz::detail::make_map<hashtag>() };
+	static auto constexpr jsonifierMapNew02{ jsonifier_internal::makeSet<hashtag>() };
+	static auto constexpr glazeMapNew02{ glz::detail::make_map<hashtag>() };
 
-	auto jsonifierMapNew03{ jsonifier_internal::makeSet<large_data>() };
-	auto glazeMapNew03{ glz::detail::make_map<large_data>() };
+	static auto constexpr jsonifierMapNew03{ jsonifier_internal::makeSet<large_data>() };
+	static auto constexpr glazeMapNew03{ glz::detail::make_map<large_data>() };
 	std::cout << "STRING SCALING FACTOR INDEX: " << jsonifierMapNew03.stringScalingFactor<< std::endl;
 	std::cout << "OBJECT SIZE: " << jsonifierMapNew03.items.size() << std::endl;
 
-	auto jsonifierMapNew04{ jsonifier_internal::makeSet<sizes_data>() };
-	auto glazeMapNew04{ glz::detail::make_map<sizes_data>() };
+	static auto constexpr jsonifierMapNew04{ jsonifier_internal::makeSet<sizes_data>() };
+	static auto constexpr glazeMapNew04{ glz::detail::make_map<sizes_data>() };
 	std::cout << "STRING SCALING FACTOR INDEX: " << jsonifierMapNew04.stringScalingFactor<< std::endl;
 	std::cout << "OBJECT SIZE: " << jsonifierMapNew04.items.size() << std::endl;
 
-	auto jsonifierMapNew05{ jsonifier_internal::makeSet<media_data>() };
-	auto glazeMapNew05{ glz::detail::make_map<media_data>() };
+	static auto constexpr jsonifierMapNew05{ jsonifier_internal::makeSet<media_data>() };
+	static auto constexpr glazeMapNew05{ glz::detail::make_map<media_data>() };
 	std::cout << "STRING SCALING FACTOR INDEX: " << jsonifierMapNew05.stringScalingFactor<< std::endl;
 	std::cout << "OBJECT SIZE: " << jsonifierMapNew05.items.size() << std::endl;
 
-	auto jsonifierMapNew06{ jsonifier_internal::makeSet<url_data>() };
-	auto glazeMapNew06{ glz::detail::make_map<url_data>() };
+	static auto constexpr jsonifierMapNew06{ jsonifier_internal::makeSet<url_data>() };
+	static auto constexpr glazeMapNew06{ glz::detail::make_map<url_data>() };
 	std::cout << "STRING SCALING FACTOR INDEX: " << jsonifierMapNew06.stringScalingFactor<< std::endl;
 	std::cout << "OBJECT SIZE: " << jsonifierMapNew06.items.size() << std::endl;
 
-	auto jsonifierMapNew07{ jsonifier_internal::makeSet<user_mention>() };
-	auto glazeMapNew07{ glz::detail::make_map<user_mention>() };
+	static auto constexpr jsonifierMapNew07{ jsonifier_internal::makeSet<user_mention>() };
+	static auto constexpr glazeMapNew07{ glz::detail::make_map<user_mention>() };
 	std::cout << "STRING SCALING FACTOR INDEX: " << jsonifierMapNew07.stringScalingFactor<< std::endl;
 	std::cout << "OBJECT SIZE: " << jsonifierMapNew07.items.size() << std::endl;
 
-	auto jsonifierMapNew08{ jsonifier_internal::makeSet<status_entities>() };
-	auto glazeMapNew08{ glz::detail::make_map<status_entities>() };
+	static auto constexpr jsonifierMapNew08{ jsonifier_internal::makeSet<status_entities>() };
+	static auto constexpr glazeMapNew08{ glz::detail::make_map<status_entities>() };
 	std::cout << "STRING SCALING FACTOR INDEX: " << jsonifierMapNew08.stringScalingFactor<< std::endl;
 	std::cout << "OBJECT SIZE: " << jsonifierMapNew08.items.size() << std::endl;
 
-	auto jsonifierMapNew09{ jsonifier_internal::makeSet<metadata_data>() };
-	auto glazeMapNew09{ glz::detail::make_map<metadata_data>() };
+	static auto constexpr jsonifierMapNew09{ jsonifier_internal::makeSet<metadata_data>() };
+	static auto constexpr glazeMapNew09{ glz::detail::make_map<metadata_data>() };
 
-	auto jsonifierMapNew10{ jsonifier_internal::makeSet<description_data>() };
-	auto glazeMapNew10{ glz::detail::make_map<description_data>() };
+	static auto constexpr jsonifierMapNew10{ jsonifier_internal::makeSet<description_data>() };
+	static auto constexpr glazeMapNew10{ glz::detail::make_map<description_data>() };
 
-	auto jsonifierMapNew11{ jsonifier_internal::makeSet<user_entities>() };
-	auto glazeMapNew11{ glz::detail::make_map<user_entities>() };
+	static auto constexpr jsonifierMapNew11{ jsonifier_internal::makeSet<user_entities>() };
+	static auto constexpr glazeMapNew11{ glz::detail::make_map<user_entities>() };
 
-	auto jsonifierMapNew12{ jsonifier_internal::makeSet<twitter_user>() };
-	auto glazeMapNew12{ glz::detail::make_map<twitter_user>() };
+	static auto constexpr jsonifierMapNew12{ jsonifier_internal::makeSet<twitter_user>() };
+	static auto constexpr glazeMapNew12{ glz::detail::make_map<twitter_user>() };
 	std::cout << "STRING SCALING FACTOR INDEX: " << jsonifierMapNew12.stringScalingFactor<< std::endl;
 	std::cout << "NUM GROUPS: " << jsonifierMapNew12.numGroups << std::endl;
 	std::cout << "BUCKET SIZE: " << jsonifierMapNew12.bucketSize << std::endl;
 
-	auto jsonifierMapNew13{ jsonifier_internal::makeSet<retweeted_status_data>() };
-	auto glazeMapNew13{ glz::detail::make_map<retweeted_status_data>() };
+	static auto constexpr jsonifierMapNew13{ jsonifier_internal::makeSet<retweeted_status_data>() };
+	static auto constexpr glazeMapNew13{ glz::detail::make_map<retweeted_status_data>() };
 	std::cout << "STRING SCALING FACTOR INDEX: " << jsonifierMapNew13.stringScalingFactor<< std::endl;
 	std::cout << "NUM GROUPS: " << jsonifierMapNew13.numGroups << std::endl;
 	std::cout << "BUCKET SIZE: " << jsonifierMapNew13.bucketSize << std::endl;
 
-	auto jsonifierMapNew14{ jsonifier_internal::makeSet<status_data>() };
-	auto glazeMapNew14{ glz::detail::make_map<status_data>() };
+	static auto constexpr jsonifierMapNew14{ jsonifier_internal::makeSet<status_data>() };
+	static auto constexpr glazeMapNew14{ glz::detail::make_map<status_data>() };
 	std::cout << "STRING SCALING FACTOR INDEX: " << jsonifierMapNew14.stringScalingFactor<< std::endl;
 	std::cout << "NUM GROUPS: " << jsonifierMapNew14.numGroups << std::endl;
 	std::cout << "BUCKET SIZE: " << jsonifierMapNew14.bucketSize << std::endl;
 
-	auto jsonifierMapNew15{ jsonifier_internal::makeSet<twitter_message>() };
-	auto glazeMapNew15{ glz::detail::make_map<twitter_message>() };
+	static auto constexpr jsonifierMapNew15{ jsonifier_internal::makeSet<twitter_message>() };
+	static auto constexpr glazeMapNew15{ glz::detail::make_map<twitter_message>() };
 
-	auto jsonifierMapNew16{ jsonifier_internal::makeSet<icon_emoji_data>() };
-	auto glazeMapNew16{ glz::detail::make_map<icon_emoji_data>() };
+	static auto constexpr jsonifierMapNew16{ jsonifier_internal::makeSet<icon_emoji_data>() };
+	static auto constexpr glazeMapNew16{ glz::detail::make_map<icon_emoji_data>() };
 
-	auto jsonifierMapNew17{ jsonifier_internal::makeSet<permission_overwrite>() };
-	auto glazeMapNew17{ glz::detail::make_map<permission_overwrite>() };
+	static auto constexpr jsonifierMapNew17{ jsonifier_internal::makeSet<permission_overwrite>() };
+	static auto constexpr glazeMapNew17{ glz::detail::make_map<permission_overwrite>() };
 	std::cout << "STRING SCALING FACTOR INDEX: " << jsonifierMapNew17.stringScalingFactor<< std::endl;
 	std::cout << "OBJECT SIZE: " << jsonifierMapNew17.items.size() << std::endl;
 
-	auto jsonifierMapNew18{ jsonifier_internal::makeSet<channel_data>() };
-	auto glazeMapNew18{ glz::detail::make_map<channel_data>() };
+	static auto constexpr jsonifierMapNew18{ jsonifier_internal::makeSet<channel_data>() };
+	static auto constexpr glazeMapNew18{ glz::detail::make_map<channel_data>() };
 	std::cout << "STRING SCALING FACTOR INDEX: " << jsonifierMapNew18.stringScalingFactor<< std::endl;
 	//std::cout << "NUM GROUPS: " << jsonifierMapNew18.numGroups << std::endl;
 	//std::cout << "BUCKET SIZE: " << jsonifierMapNew18.bucketSize << std::endl;
 
-	auto jsonifierMapNew19{ jsonifier_internal::makeSet<user_data>() };
-	auto glazeMapNew19{ glz::detail::make_map<user_data>() };
+	static auto constexpr jsonifierMapNew19{ jsonifier_internal::makeSet<user_data>() };
+	static auto constexpr glazeMapNew19{ glz::detail::make_map<user_data>() };
 	std::cout << "STRING SCALING FACTOR INDEX: " << jsonifierMapNew19.stringScalingFactor<< std::endl;
 	std::cout << "OBJECT SIZE: " << jsonifierMapNew19.items.size() << std::endl;
 
-	auto jsonifierMapNew20{ jsonifier_internal::makeSet<member_data>() };
-	auto glazeMapNew20{ glz::detail::make_map<member_data>() };
+	static auto constexpr jsonifierMapNew20{ jsonifier_internal::makeSet<member_data>() };
+	static auto constexpr glazeMapNew20{ glz::detail::make_map<member_data>() };
 	std::cout << "STRING SCALING FACTOR INDEX: " << jsonifierMapNew20.stringScalingFactor<< std::endl;
 	std::cout << "OBJECT SIZE: " << jsonifierMapNew20.items.size() << std::endl;
 
-	auto jsonifierMapNew21{ jsonifier_internal::makeSet<tags_data>() };
-	auto glazeMapNew21{ glz::detail::make_map<tags_data>() };
+	static auto constexpr jsonifierMapNew21{ jsonifier_internal::makeSet<tags_data>() };
+	static auto constexpr glazeMapNew21{ glz::detail::make_map<tags_data>() };
 
-	auto jsonifierMapNew22{ jsonifier_internal::makeSet<role_data>() };
-	auto glazeMapNew22{ glz::detail::make_map<role_data>() };
+	static auto constexpr jsonifierMapNew22{ jsonifier_internal::makeSet<role_data>() };
+	static auto constexpr glazeMapNew22{ glz::detail::make_map<role_data>() };
 	std::cout << "STRING SCALING FACTOR INDEX: " << jsonifierMapNew22.stringScalingFactor<< std::endl;
 	std::cout << "OBJECT SIZE: " << jsonifierMapNew22.items.size() << std::endl;
 
-	auto jsonifierMapNew23{ jsonifier_internal::makeSet<guild_data>() };
-	auto glazeMapNew23{ glz::detail::make_map<guild_data>() };
+	static auto constexpr jsonifierMapNew23{ jsonifier_internal::makeSet<guild_data>() };
+	static auto constexpr glazeMapNew23{ glz::detail::make_map<guild_data>() };
 	std::cout << "STRING SCALING FACTOR INDEX: " << jsonifierMapNew23.stringScalingFactor<< std::endl;
 	std::cout << "NUM GROUPS: " << jsonifierMapNew23.numGroups << std::endl;
 	std::cout << "BUCKET SIZE: " << jsonifierMapNew23.bucketSize << std::endl;
 
-	auto jsonifierMapNew24{ jsonifier_internal::makeSet<discord_message>() };
-	auto glazeMapNew24{ glz::detail::make_map<discord_message>() };
+	static auto constexpr jsonifierMapNew24{ jsonifier_internal::makeSet<discord_message>() };
+	static auto constexpr glazeMapNew24{ glz::detail::make_map<discord_message>() };
 	std::cout << "STRING SCALING FACTOR INDEX: " << jsonifierMapNew24.stringScalingFactor<< std::endl;
 	std::cout << "OBJECT SIZE: " << jsonifierMapNew24.items.size() << std::endl;
 

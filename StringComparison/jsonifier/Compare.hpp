@@ -276,7 +276,7 @@ namespace jsonifier_internal {
 			return false;
 		}
 		return true;
-	}
+	} 
 
 	template<uint64_t count, class char_type> constexpr bool compare(const char_type* lhs, const char_type* rhs) noexcept {
 		if constexpr (count > 8) {
@@ -306,7 +306,7 @@ namespace jsonifier_internal {
 			std::memcpy(v + 1, rhs, count);
 			return v[0] == v[1];
 		} else if constexpr (count > 4) {
-			uint64_t v[2]{};
+			uint64_t v[2]{}; 
 			std::memcpy(v, lhs, count);
 			std::memcpy(v + 1, rhs, count);
 			return v[0] == v[1];
@@ -316,7 +316,7 @@ namespace jsonifier_internal {
 			std::memcpy(v + 1, rhs, count);
 			return v[0] == v[1];
 		} else if constexpr (count == 3) {
-			uint32_t v[2]{};
+			uint32_t v[2]{}; 
 			std::memcpy(v, lhs, count);
 			std::memcpy(v + 1, rhs, count);
 			return v[0] == v[1];
