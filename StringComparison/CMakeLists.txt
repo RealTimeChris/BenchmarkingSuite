@@ -13,7 +13,16 @@ set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};${CMAKE_CURRENT_SOURCE_DIR}/../CMake
 
 project ("StringComparison" LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)
-set(xxHash_DIR "C:/Vcpkg/installed/x64-windows/share/xxhash")
+#set(xxHash_DIR "C:/Vcpkg/installed/x64-windows/share/xxhash")
+add_library("xxHash" STATIC "../xxHash/xxhash.cpp" "../xxHash/xxhash.h")
+
+set_target_properties(
+	"xxHash" PROPERTIES
+	LANGUAGE CXX
+	CXX_STANDARD_REQUIRED ON
+	CXX_EXTENSIONS OFF
+)
+
 add_executable("StringComparisonExe" "main.cpp")
 
 target_link_options("StringComparisonExe" PUBLIC 
@@ -22,11 +31,11 @@ target_link_options("StringComparisonExe" PUBLIC
 	"$<$<CXX_COMPILER_ID:MSVC>:/OPT:ICF>"
 	"$<$<CXX_COMPILER_ID:MSVC>:/PROFILE>"
 )
-find_package(xxHash CONFIG REQUIRED)
+#find_package(xxHash CONFIG REQUIRED)
 target_link_libraries(
 	"StringComparisonExe"
 	PUBLIC
-	"xxHash::xxhash"
+	"xxHash"
 	"BenchmarkSuite"
 	"glaze::glaze"
 )
@@ -36,7 +45,7 @@ message("${AVX_FLAG}")
 target_compile_options (
 	"StringComparisonExe" PUBLIC
 	"$<$<CXX_COMPILER_ID:MSVC>:$<$<STREQUAL:${ASAN_ENABLED},TRUE>:/fsanitize=address>>"
-	"$<$<CXX_COMPILER_ID:MSVC>:/constexpr:steps 2097152>"
+	"$<$<CXX_COMPILER_ID:MSVC>:/constexpr:steps 1048576>"
 	"$<$<CXX_COMPILER_ID:GNU>:$<$<STREQUAL:${ASAN_ENABLED},TRUE>:-fsanitize=address>>"
 	
 	"${AVX_FLAG}"

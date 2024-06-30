@@ -57,6 +57,8 @@
 	#define JSONIFIER_GNUCXX 1
 #endif
 
+#define JSONIFIER_GCC_VERSION (__GNUC__ * 100 + __GNUC_MINOR__)
+
 #if defined(macintosh) || defined(Macintosh) || (defined(__APPLE__) && defined(__MACH__))
 	#define JSONIFIER_MAC 1
 #elif defined(linux) || defined(__linux) || defined(__linux__) || defined(__gnu_linux__)

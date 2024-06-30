@@ -62,7 +62,7 @@ namespace simd_internal {
 		return prevInString;
 	}
 
-	template<typename simd_int_t01> JSONIFIER_INLINE simd_int_t opClMul(simd_int_t01&& value, uint64_t& prevInString) {
+	template<typename simd_int_t01> JSONIFIER_INLINE simd_int_t opClMul(simd_int_t01&& value, int64_t& prevInString) {
 		JSONIFIER_ALIGN uint64_t values[sixtyFourBitsPerStep];
 		store(value, values);
 		values[0]	 = prefixXor(values[0]) ^ prevInString;

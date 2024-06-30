@@ -138,7 +138,7 @@ namespace jsonifier_internal {
 		structural_index* structuralIndices{};
 		size_type structuralIndexCount{};
 		size_type stringIndex{};
-		uint64_t prevInString{};
+		int64_t prevInString{};
 		size_type tapeIndex{};
 		bool overflow{};
 
