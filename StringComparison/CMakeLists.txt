@@ -9,12 +9,14 @@ if (POLICY CMP0141)
   set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<IF:$<AND:$<C_COMPILER_ID:MSVC>,$<CXX_COMPILER_ID:MSVC>>,$<$<CONFIG:Debug,RelWithDebInfo>:EditAndContinue>,$<$<CONFIG:Debug,RelWithDebInfo>:ProgramDatabase>>")
 endif()
 
+file(GLOB_RECURSE HEADERS CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/jsonifier/*.hpp")
+
 set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};${CMAKE_CURRENT_SOURCE_DIR}/../CMake")
 
 project ("StringComparison" LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)
 #set(xxHash_DIR "C:/Vcpkg/installed/x64-windows/share/xxhash")
-add_library("xxHash" STATIC "../xxHash/xxhash.cpp" "../xxHash/xxhash.h")
+add_library("xxHash" STATIC "${HEADERS}" "../xxHash/xxhash.cpp" "../xxHash/xxhash.h")
 
 set_target_properties(
 	"xxHash" PROPERTIES
@@ -58,7 +60,9 @@ target_compile_definitions(
 	"$<$<STREQUAL:${DEV},TRUE>:DEV>"
 )
 
-target_include_directories("StringComparisonExe" PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/")
+target_include_directories("StringComparisonExe" PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/" "${CMAKE_CURRENT_SOURCE_DIR}/jsonifier")
+
+target_include_directories("xxHash" PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/" "${CMAKE_CURRENT_SOURCE_DIR}/jsonifier")
 
 target_compile_definitions(
 	"StringComparisonExe"

@@ -24,8 +24,6 @@
 /// Feb 3, 2023
 #pragma once
 
-#include "../xxHash/xxhash.h"
-
 #include <source_location>
 #include <unordered_map>
 #include <exception>
@@ -112,7 +110,9 @@ namespace jsonifier_internal {
 	}
 
 	constexpr uint64_t xxhPrime641{ 0x9E3779B185EBCA87ull };
+	constexpr uint64_t xxhPrime642{ 0xC2B2AE3D27D4EB4FULL };
 	constexpr uint64_t primeMx1{ 0x165667919E3779F9ull };
+	constexpr uint64_t primeMx2{ 0x9FB21C651E98DF25ULL };
 	constexpr uint64_t secretDefaultSize{ 192 };
 
 	JSONIFIER_ALIGN constexpr uint8_t xxh3KSecret[secretDefaultSize]{ 0xb8u, 0xfeu, 0x6cu, 0x39u, 0x23u, 0xa4u, 0x4bu, 0xbeu, 0x7cu, 0x01u, 0x81u, 0x2cu, 0xf7u, 0x21u, 0xadu,
@@ -125,6 +125,63 @@ namespace jsonifier_internal {
 		0x9eu, 0x2bu, 0x16u, 0xbeu, 0x58u, 0x7du, 0x47u, 0xa1u, 0xfcu, 0x8fu, 0xf8u, 0xb8u, 0xd1u, 0x7au, 0xd0u, 0x31u, 0xceu, 0x45u, 0xcbu, 0x3au, 0x8fu, 0x95u, 0x16u, 0x04u,
 		0x28u, 0xafu, 0xd7u, 0xfbu, 0xcau, 0xbbu, 0x4bu, 0x40u, 0x7eu };
 
+	constexpr uint32_t rotl32Ct(uint32_t x, uint32_t r) {
+		return (((x) << (r)) | ((x) >> (32 - (r))));
+	}
+
+	constexpr uint64_t rotl64Ct(uint64_t x, uint32_t r) {
+		return (((x) << (r)) | ((x) >> (64 - (r))));
+	}
+
+#if defined(JSONIFIER_MSVC)
+	#define rotl32Internal(x, r) _rotl(x, r)
+	#define rotl64Internal(x, r) _rotl64(x, r)
+#else
+	#define rotl32Internal(x, r) rotl32Ct(x, r)
+	#define rotl64Internal(x, r) rotl64Ct(x, r)
+#endif
+
+	JSONIFIER_INLINE uint32_t rotl32Rt(uint32_t x, uint32_t r) {
+		return rotl32Internal(x, r);
+	}
+
+	JSONIFIER_INLINE uint64_t rotl64Rt(uint64_t x, uint32_t r) {
+		return rotl64Internal(x, r);
+	}
+
+	constexpr uint32_t swap32Ct(uint32_t x) {
+		return ((x << 24) & 0xff000000) | ((x << 8) & 0x00ff0000) | ((x >> 8) & 0x0000ff00) | ((x >> 24) & 0x000000ff);
+	}
+
+#if defined(JSONIFIER_MSVC) /* Visual Studio */
+	#define swap32Internal _byteswap_ulong
+#elif JSONIFIER_GCC_VERSION >= 403
+	#define swap32Internal __builtin_bswap32
+#else
+	#define swap32Internal swap32Ct
+#endif
+
+	JSONIFIER_INLINE uint32_t swap32Rt(uint32_t x) {
+		return swap32Internal(x);
+	}
+
+	constexpr uint64_t swap64Ct(uint64_t x) {
+		return ((x << 56) & 0xff00000000000000ULL) | ((x << 40) & 0x00ff000000000000ULL) | ((x << 24) & 0x0000ff0000000000ULL) | ((x << 8) & 0x000000ff00000000ULL) |
+			((x >> 8) & 0x00000000ff000000ULL) | ((x >> 24) & 0x0000000000ff0000ULL) | ((x >> 40) & 0x000000000000ff00ULL) | ((x >> 56) & 0x00000000000000ffULL);
+	}
+
+#if defined(JSONIFIER_MSVC) /* Visual Studio */
+	#define swap64Internal _byteswap_uint64
+#elif JSONIFIER_GCC_VERSION >= 403
+	#define swap64Internal __builtin_bswap64
+#else
+	#define swap64Internal swap64Ct
+#endif
+
+	JSONIFIER_INLINE uint64_t swap64Rt(uint64_t x) {
+		return swap64Internal(x);
+	}
+
 	template<typename value_type, typename char_type> JSONIFIER_INLINE value_type readBitsRt(const char_type* ptr) {
 		JSONIFIER_ALIGN value_type returnValue{};
 		std::memcpy(&returnValue, ptr, sizeof(value_type));
@@ -134,20 +191,36 @@ namespace jsonifier_internal {
 	template<typename value_type, typename char_type> constexpr value_type readBitsCt(const char_type* ptr) {
 		JSONIFIER_ALIGN value_type returnValue{};
 		for (uint64_t x = 0; x < sizeof(value_type); ++x) {
-			returnValue |= static_cast<value_type>(static_cast<char>(ptr[x])) << (x * 8);
+			returnValue |= static_cast<value_type>(static_cast<uint8_t>(ptr[x])) << (x * 8);
 		}
 		return returnValue;
 	}
 
-	constexpr uint64_t xorShift64(uint64_t v64, int32_t shift) {
+	JSONIFIER_INLINE constexpr uint64_t xorShift64(uint64_t v64, int32_t shift) {
 		return v64 ^ (v64 >> shift);
 	}
 
-	constexpr uint64_t avalanche(uint64_t h64) {
+	JSONIFIER_INLINE constexpr uint64_t avalanche(uint64_t h64) {
 		h64 = xorShift64(h64, 37);
 		h64 *= primeMx1;
 		h64 = xorShift64(h64, 32);
 		return h64;
+	}
+
+	JSONIFIER_INLINE uint64_t rrmxmxRt(uint64_t h64, uint64_t len) {
+		h64 ^= rotl64Rt(h64, 49) ^ rotl64Rt(h64, 24);
+		h64 *= primeMx2;
+		h64 ^= (h64 >> 35) + len;
+		h64 *= primeMx2;
+		return xorShift64(h64, 28);
+	}
+
+	constexpr uint64_t rrmxmxCt(uint64_t h64, uint64_t len) {
+		h64 ^= rotl64Ct(h64, 49) ^ rotl64Ct(h64, 24);
+		h64 *= primeMx2;
+		h64 ^= (h64 >> 35) + len;
+		h64 *= primeMx2;
+		return xorShift64(h64, 28);
 	}
 
 	JSONIFIER_INLINE __m128x mult64To128Rt(uint64_t lhs, uint64_t rhs) {
@@ -194,7 +267,7 @@ namespace jsonifier_internal {
 #endif
 	}
 
-	constexpr uint64_t mult32To64(uint64_t x, uint64_t y) {
+	JSONIFIER_INLINE constexpr uint64_t mult32To64(uint64_t x, uint64_t y) {
 		return (x & 0xFFFFFFFF) * (y & 0xFFFFFFFF);
 	}
 
@@ -225,6 +298,9 @@ namespace jsonifier_internal {
 
 	constexpr uint64_t fnv64Prime{ 0x00000100000001B3ull };
 
+	constexpr uint64_t fnvOffsetBasis{ 0xcbf29ce484222325ull };
+	constexpr uint64_t fnvPrime{ 0x00000100000001B3ull };
+
 	struct key_hasher {
 		constexpr key_hasher() noexcept = default;
 
@@ -242,67 +318,67 @@ namespace jsonifier_internal {
 			return seed;
 		}
 
-		JSONIFIER_INLINE uint64_t hashKeyRt(string_view_ptr value, uint64_t length) const {
-			if (length < 16) {
-				return fnv1aHashRt(value, length);
+		JSONIFIER_INLINE uint64_t hashKeyRtFirst(const char* value, uint64_t length) const {
+			uint64_t hashValue{};
+			hashValue ^= readBitsRt<uint8_t>(value);
+			hashValue *= fnvPrime;
+			hashValue ^= length;
+			hashValue ^= readBitsRt<uint8_t>(value + length - 1);
+			hashValue *= fnvPrime;
+			return hashValue;
+		}
+
+		constexpr uint64_t hashKeyCtFirst(const char* value, uint64_t length) const {
+			uint64_t hashValue{};
+			hashValue ^= readBitsCt<uint8_t>(value);
+			hashValue *= fnvPrime;
+			hashValue ^= length;
+			hashValue ^= readBitsCt<uint8_t>(value + length - 1);
+			hashValue *= fnvPrime;
+			return hashValue;
+		}
+
+		JSONIFIER_INLINE uint64_t hashKeyRt(const char* value, uint64_t length, uint64_t stringLength) const {
+			if (length <= 16) {
+				uint64_t hashValue = seed;
+				for (uint64_t x = 0; x < length; ++x) {
+					hashValue ^= static_cast<uint64_t>(value[x]);
+					hashValue *= fnvPrime;
+				}
+				return avalanche(hashValue);
+			} else if (length <= 128) {
+				uint64_t hashValueNew{ seed };
+				hashValueNew = mix16BRt(hashValueNew, len17To12864bRt(value, length));
+				return avalanche(hashValueNew);
 			} else {
-				return xxh64bitsWithSeedRt(value, length);
+				uint64_t hashValueNew{ seed };
+				hashValueNew = mix16BRt(hashValueNew, len129ToAnyRt(value, length));
+				return avalanche(hashValueNew);
 			}
 		}
 
-		constexpr uint64_t hashKeyCt(string_view_ptr value, uint64_t length) const {
-			if (length < 16) {
-				return fnv1aHashCt(value, length);
+		constexpr uint64_t hashKeyCt(const char* value, uint64_t length, uint64_t stringLength) const {
+			if (length <= 16) {
+				uint64_t hashValue = seed;
+				for (uint64_t x = 0; x < length; ++x) {
+					hashValue ^= static_cast<uint64_t>(value[x]);
+					hashValue *= fnvPrime;
+				} 
+				return avalanche(hashValue);
+			} else if (length <= 128) {
+				uint64_t hashValueNew{ seed };
+				hashValueNew = mix16BCt(hashValueNew, len17To12864bCt(value, length));
+				return avalanche(hashValueNew);
 			} else {
-				return xxh64bitsWithSeedCt(value, length);
+				uint64_t hashValueNew{ seed };
+				hashValueNew = mix16BCt(hashValueNew, len129ToAnyCt(value, length));
+				return avalanche(hashValueNew);
 			}
 		}
 
 	  protected:
 		JSONIFIER_ALIGN uint8_t secret[secretDefaultSize]{};
 		uint64_t seed{};
-
-		JSONIFIER_INLINE uint64_t fnv1aHashRt(string_view_ptr value, uint64_t length) const {
-			uint64_t seedNew{ seed };
-			while (length >= 8) {
-				seedNew ^= readBitsRt<uint64_t>(value);
-				seedNew *= fnv64Prime;
-				value += 8;
-				length -= 8;
-			}
-			if (length >= 4) {
-				seedNew ^= static_cast<uint64_t>(readBitsRt<uint32_t>(value));
-				seedNew *= fnv64Prime;
-				value += 4;
-				length -= 4;
-			}
-			for (uint64_t x = 0; x < length; ++x) {
-				seedNew ^= static_cast<uint64_t>(value[x]);
-				seedNew *= fnv64Prime;
-			}
-			return seedNew;
-		}
-
-		constexpr uint64_t fnv1aHashCt(string_view_ptr value, uint64_t length) const {
-			uint64_t seedNew{ seed };
-			while (length >= 8) {
-				seedNew ^= readBitsCt<uint64_t>(value);
-				seedNew *= fnv64Prime;
-				value += 8;
-				length -= 8;
-			}
-			if (length >= 4) {
-				seedNew ^= static_cast<uint64_t>(readBitsCt<uint32_t>(value));
-				seedNew *= fnv64Prime;
-				value += 4;
-				length -= 4;
-			}
-			for (uint64_t x = 0; x < length; ++x) {
-				seedNew ^= static_cast<uint64_t>(value[x]);
-				seedNew *= fnv64Prime;
-			}
-			return seedNew;
-		}
 
 		constexpr void initCustomSecretCt() {
 			constexpr auto nbRounds = secretDefaultSize / sizeof(simd_int_128);
@@ -321,78 +397,111 @@ namespace jsonifier_internal {
 			}
 		}
 
+		JSONIFIER_INLINE uint64_t len9To1664bRt(const char* input, size_t length) const {
+			{
+				uint64_t const bitflip2 = (readBitsRt<uint64_t>(secret + 40) ^ readBitsRt<uint64_t>(secret + 48)) - seed;
+				uint64_t const inputLo	= readBitsRt<uint64_t>(input) ^ bitflip2;
+				uint64_t const inputHi	= readBitsRt<uint64_t>(input + length - 8) ^ bitflip2;
+				uint64_t const acc		= length + swap64Rt(inputLo) + inputHi + mul128Fold64Rt(inputLo, inputHi);
+				return avalanche(acc);
+			}
+		}
+
+		constexpr uint64_t len9To1664bCt(const char* input, size_t length) const {
+			{
+				uint64_t const bitflip2 = (readBitsCt<uint64_t>(secret + 40) ^ readBitsCt<uint64_t>(secret + 48)) - seed;
+				uint64_t const inputLo	= readBitsCt<uint64_t>(input) ^ bitflip2;
+				uint64_t const inputHi	= readBitsCt<uint64_t>(input + length - 8) ^ bitflip2;
+				uint64_t const acc		= length + swap64Ct(inputLo) + inputHi + mul128Fold64Ct(inputLo, inputHi);
+				return avalanche(acc);
+			}
+		}
+
 		JSONIFIER_INLINE uint64_t mix16BRt(const char* input, const uint8_t* secretNew) const {
-			uint64_t const inputLo = readBitsRt<uint64_t>(input);
-			uint64_t const inputHi = readBitsRt<uint64_t>(input + 8);
-			return mul128Fold64Rt(inputLo ^ (readBitsRt<uint64_t>(secretNew) + seed), inputHi ^ (readBitsRt<uint64_t>(secretNew + 8) - seed));
+			{
+				uint64_t const input_lo = readBitsRt<uint64_t>(input);
+				uint64_t const input_hi = readBitsRt<uint64_t>(input + 8);
+				return (input_lo ^ (readBitsRt<uint64_t>(secretNew) + seed)) ^ (input_hi ^ (readBitsRt<uint64_t>(secretNew + 8) - seed));
+			}
 		}
 
 		constexpr uint64_t mix16BCt(const char* input, const uint8_t* secretNew) const {
-			uint64_t const inputLo = readBitsCt<uint64_t>(input);
-			uint64_t const inputHi = readBitsCt<uint64_t>(input + 8);
-			return mul128Fold64Ct(inputLo ^ (readBitsCt<uint64_t>(secretNew) + seed), inputHi ^ (readBitsCt<uint64_t>(secretNew + 8) - seed));
+			{
+				uint64_t const input_lo = readBitsCt<uint64_t>(input);
+				uint64_t const input_hi = readBitsCt<uint64_t>(input + 8);
+				return (input_lo ^ (readBitsCt<uint64_t>(secretNew) + seed)) ^ (input_hi ^ (readBitsCt<uint64_t>(secretNew + 8) - seed));
+			}
 		}
 
-		JSONIFIER_INLINE uint64_t xxh64bitsWithSeedRt(const char* input, size_t length) const {
-			uint64_t acc = length * xxhPrime641;
+		JSONIFIER_INLINE uint64_t mix16BRt(uint64_t value01, uint64_t value02) const {
+			return (value01 ^ (readBitsRt<uint64_t>(secret) + seed)) ^ (value02 ^ (readBitsRt<uint64_t>(secret + 8) - seed));
+		}
 
-			if (length <= 128) {
-				if (length > 32) {
-					if (length > 64) {
-						if (length > 96) {
-							acc += mix16BRt(input + 48, secret + 96);
-							acc += mix16BRt(input + length - 64, secret + 112);
-						}
-						acc += mix16BRt(input + 32, secret + 64);
-						acc += mix16BRt(input + length - 48, secret + 80);
+		constexpr uint64_t mix16BCt(uint64_t value01, uint64_t value02) const {
+			return (value01 ^ (readBitsCt<uint64_t>(secret) + seed)) ^ (value02 ^ (readBitsCt<uint64_t>(secret + 8) - seed));
+		}
+
+		JSONIFIER_INLINE uint64_t len17To12864bRt(const char* input, size_t length) const {
+			uint64_t acc = length * xxhPrime641;
+			if (length > 32) {
+				if (length > 64) {
+					if (length > 96) {
+						acc += mix16BRt(input + 48, secret + 96);
+						acc += mix16BRt(input + length - 64, secret + 112);
 					}
-					acc += mix16BRt(input + 16, secret + 32);
-					acc += mix16BRt(input + length - 32, secret + 48);
+					acc += mix16BRt(input + 32, secret + 64);
+					acc += mix16BRt(input + length - 48, secret + 80);
 				}
-				acc += mix16BRt(input + 0, secret + 0);
-				acc += mix16BRt(input + length - 16, secret + 16);
-			} else {
-				uint64_t nBlocks = length / 16;
-				for (uint64_t x = 0; x < nBlocks / 2; ++x) {
-					acc += mix16BRt(input + (x * 16), secret + (x * 16));
-					acc += mix16BRt(input + length - ((x + 1) * 16), secret + ((x + 1) * 16));
-				}
-				for (uint64_t x = nBlocks / 2; x < nBlocks; ++x) {
-					acc += mix16BRt(input + (x * 16), secret + ((x * 16) % secretDefaultSize));
-				}
+				acc += mix16BRt(input + 16, secret + 32);
+				acc += mix16BRt(input + length - 32, secret + 48);
 			}
+			acc += mix16BRt(input + 0, secret + 0);
+			acc += mix16BRt(input + length - 16, secret + 16);
 			return avalanche(acc);
 		}
 
-		constexpr uint64_t xxh64bitsWithSeedCt(const char* input, size_t length) const {
+		constexpr uint64_t len17To12864bCt(const char* input, size_t length) const {
 			uint64_t acc = length * xxhPrime641;
-
-			if (length <= 128) {
-				if (length > 32) {
-					if (length > 64) {
-						if (length > 96) {
-							acc += mix16BCt(input + 48, secret + 96);
-							acc += mix16BCt(input + length - 64, secret + 112);
-						}
-						acc += mix16BCt(input + 32, secret + 64);
-						acc += mix16BCt(input + length - 48, secret + 80);
+			if (length > 32) {
+				if (length > 64) {
+					if (length > 96) {
+						acc += mix16BCt(input + 48, secret + 96);
+						acc += mix16BCt(input + length - 64, secret + 112);
 					}
-					acc += mix16BCt(input + 16, secret + 32);
-					acc += mix16BCt(input + length - 32, secret + 48);
+					acc += mix16BCt(input + 32, secret + 64);
+					acc += mix16BCt(input + length - 48, secret + 80);
 				}
-				acc += mix16BCt(input + 0, secret + 0);
-				acc += mix16BCt(input + length - 16, secret + 16);
-			} else {
-				uint64_t nBlocks = length / 16;
-				for (uint64_t x = 0; x < nBlocks / 2; ++x) {
-					acc += mix16BCt(input + (x * 16), secret + (x * 16));
-					acc += mix16BCt(input + length - ((x + 1) * 16), secret + ((x + 1) * 16));
-				}
-				for (uint64_t x = nBlocks / 2; x < nBlocks; ++x) {
-					acc += mix16BCt(input + (x * 16), secret + ((x * 16) % secretDefaultSize));
-				}
+				acc += mix16BCt(input + 16, secret + 32);
+				acc += mix16BCt(input + length - 32, secret + 48);
 			}
+			acc += mix16BCt(input + 0, secret + 0);
+			acc += mix16BCt(input + length - 16, secret + 16);
 			return avalanche(acc);
+		}
+
+		JSONIFIER_INLINE uint64_t len129ToAnyRt(const char* input, size_t length) const {
+			uint64_t acc = length * xxhPrime641;
+			uint64_t nBlocks{ (length - 128) / 16 };
+			for (uint64_t x = 0; x < nBlocks; ++x) {
+				acc += mix16BRt(input + (x * 16), secret + ((x * 16) % secretDefaultSize));
+				acc += mix16BRt(input + length - (x * 16), secret + ((x * 16) % secretDefaultSize));
+				length -= 16;
+				input += 16;
+			}
+			return avalanche(acc) ^ len17To12864bRt(input, length);
+		}
+
+		constexpr uint64_t len129ToAnyCt(const char* input, size_t length) const {
+			uint64_t acc = length * xxhPrime641;
+			uint64_t nBlocks{ (length - 128) / 16 };
+			for (uint64_t x = 0; x < nBlocks; ++x) {
+				acc += mix16BCt(input + (x * 16), secret + ((x * 16) % secretDefaultSize));
+				acc += mix16BCt(input + length - (x * 16), secret + ((x * 16) % secretDefaultSize));
+				length -= 16;
+				input += 16;
+			}
+			return avalanche(acc) ^ len17To12864bCt(input, length);
 		}
 	};
+
 }

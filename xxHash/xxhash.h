@@ -1409,7 +1409,6 @@ XXH_PUBLIC_API XXH_PUREF XXH128_hash_t XXH128_hashFromCanonical(XXH_NOESCAPE con
 
 
 
-#if defined(XXH_STATIC_LINKING_ONLY) && !defined(XXHASH_H_STATIC_13879238742)
 #define XXHASH_H_STATIC_13879238742
 /* ****************************************************************************
  * This section contains declarations which are not guaranteed to remain stable.
@@ -1741,7 +1740,6 @@ XXH3_128bits_reset_withSecretandSeed(XXH_NOESCAPE XXH3_state_t* statePtr,
 #  define XXH_IMPLEMENTATION
 #endif
 
-#endif  /* defined(XXH_STATIC_LINKING_ONLY) && !defined(XXHASH_H_STATIC_13879238742) */
 
 
 /* ======================================================================== */
@@ -1771,8 +1769,6 @@ XXH3_128bits_reset_withSecretandSeed(XXH_NOESCAPE XXH3_state_t* statePtr,
  * which can then be linked into the final binary.
  ************************************************************************/
 
-#if ( defined(XXH_INLINE_ALL) || defined(XXH_PRIVATE_API) \
-   || defined(XXH_IMPLEMENTATION) ) && !defined(XXH_IMPLEM_13a8737387)
 #  define XXH_IMPLEM_13a8737387
 
 /* *************************************
@@ -6764,7 +6760,6 @@ XXH3_generateSecret_fromSeed(XXH_NOESCAPE void* secretBuffer, XXH64_hash_t seed)
 /*!
  * @}
  */
-#endif  /* XXH_IMPLEMENTATION */
 
 
 #if defined (__cplusplus)

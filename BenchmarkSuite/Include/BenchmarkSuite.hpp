@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <iostream>
 #include <fstream>
+#include <iomanip>
 #include <chrono>
 #include <vector>
 
@@ -402,26 +403,19 @@ namespace bnch_swt {
 		inline static void printResults() {
 			benchmark_suite_results newValues{ results };
 			for (auto& value: newValues.results) {
-				std::cout << "Benchmark Name: " << value.benchmarkName << ", MAPE: " << value.medianAbsolutePercentageError << ", Result Time: " << value.resultTime << std::endl;
-				//auto stringToWrite = parser.serializeJson(value);
-				//std::cout << "STRING TO WRITE: " << stringToWrite << std::endl;
+				std::cout << "Benchmark Name: " << std::setprecision(3) << value.benchmarkName << ", MAPE: " << value.medianAbsolutePercentageError
+						  << ", Result Time: " << std::setprecision(8) << std::to_string(value.resultTime) << std::endl;
 			}
-			//auto stringToWrite = parser.serializeJson(newValues);
-			//file_loader fileLoader{ filePath };
-			//fileLoader.saveFile(static_cast<std::string>(stringToWrite));
-			//std::cout << "STRING TO WRITE: " << stringToWrite << std::endl;
 			return ;
 		}
 		inline static std::string writeJsonData(const std::string& filePath) {
 			benchmark_suite_results newValues{ results };
 			for (auto& value: newValues.results) {
 				auto stringToWrite = parser.serializeJson(value);
-				std::cout << "STRING TO WRITE: " << stringToWrite << std::endl;
 			}
 			auto stringToWrite = parser.serializeJson(newValues);
 			file_loader fileLoader{ filePath };
 			fileLoader.saveFile(static_cast<std::string>(stringToWrite));
-			std::cout << "STRING TO WRITE: " << stringToWrite << std::endl;
 			return {};
 		}
 
@@ -440,7 +434,6 @@ namespace bnch_swt {
 			}
 			file_loader fileLoader{ filePath };
 			fileLoader.saveFile(static_cast<std::string>(newString));
-			std::cout << "STRING TO WRITE: " << newString << std::endl;
 			return {};
 		}
 
