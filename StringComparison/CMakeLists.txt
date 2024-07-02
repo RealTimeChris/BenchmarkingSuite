@@ -33,6 +33,7 @@ target_link_options("StringComparisonExe" PUBLIC
 	"$<$<CXX_COMPILER_ID:MSVC>:/OPT:ICF>"
 	"$<$<CXX_COMPILER_ID:MSVC>:/PROFILE>"
 )
+
 #find_package(xxHash CONFIG REQUIRED)
 target_link_libraries(
 	"StringComparisonExe"
@@ -49,7 +50,8 @@ target_compile_options (
 	"$<$<CXX_COMPILER_ID:MSVC>:$<$<STREQUAL:${ASAN_ENABLED},TRUE>:/fsanitize=address>>"
 	"$<$<CXX_COMPILER_ID:MSVC>:/constexpr:steps 1048576>"
 	"$<$<CXX_COMPILER_ID:GNU>:$<$<STREQUAL:${ASAN_ENABLED},TRUE>:-fsanitize=address>>"
-	
+
+	"$<$<CXX_COMPILER_ID:MSVC>:/Zi>"	
 	"${AVX_FLAG}"
 )
 

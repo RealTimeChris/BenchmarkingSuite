@@ -111,6 +111,9 @@ namespace jsonifier_internal {
 
 	constexpr uint64_t xxhPrime641{ 0x9E3779B185EBCA87ull };
 	constexpr uint64_t xxhPrime642{ 0xC2B2AE3D27D4EB4FULL };
+	constexpr uint64_t xxhPrime643{ 0x165667B19E3779F9ULL };
+	constexpr uint64_t xxhPrime644{ 0x85EBCA77C2B2AE63ULL };
+	constexpr uint64_t xxhPrime645{ 0x27D4EB2F165667C5ULL };
 	constexpr uint64_t primeMx1{ 0x165667919E3779F9ull };
 	constexpr uint64_t primeMx2{ 0x9FB21C651E98DF25ULL };
 	constexpr uint64_t secretDefaultSize{ 192 };
@@ -200,7 +203,12 @@ namespace jsonifier_internal {
 		return v64 ^ (v64 >> shift);
 	}
 
-	JSONIFIER_INLINE constexpr uint64_t avalanche(uint64_t h64) {
+	JSONIFIER_INLINE constexpr uint64_t avalanche(uint64_t hash) {
+		hash ^= hash >> 33;
+		return hash;
+	}
+
+	JSONIFIER_INLINE constexpr uint64_t avalancheOld(uint64_t h64) {
 		h64 = xorShift64(h64, 37);
 		h64 *= primeMx1;
 		h64 = xorShift64(h64, 32);
@@ -314,31 +322,16 @@ namespace jsonifier_internal {
 			*this = seedNew;
 		}
 
+		constexpr void setSeed(uint64_t seedNew) {
+			seed = seedNew;
+			initCustomSecretCt();
+		}
+
 		constexpr operator uint64_t() const {
 			return seed;
 		}
 
-		JSONIFIER_INLINE uint64_t hashKeyRtFirst(const char* value, uint64_t length) const {
-			uint64_t hashValue{};
-			hashValue ^= readBitsRt<uint8_t>(value);
-			hashValue *= fnvPrime;
-			hashValue ^= length;
-			hashValue ^= readBitsRt<uint8_t>(value + length - 1);
-			hashValue *= fnvPrime;
-			return hashValue;
-		}
-
-		constexpr uint64_t hashKeyCtFirst(const char* value, uint64_t length) const {
-			uint64_t hashValue{};
-			hashValue ^= readBitsCt<uint8_t>(value);
-			hashValue *= fnvPrime;
-			hashValue ^= length;
-			hashValue ^= readBitsCt<uint8_t>(value + length - 1);
-			hashValue *= fnvPrime;
-			return hashValue;
-		}
-
-		JSONIFIER_INLINE uint64_t hashKeyRt(const char* value, uint64_t length, uint64_t stringLength) const {
+		JSONIFIER_INLINE uint64_t hashKeyRt(const char* value, uint64_t length) const {
 			if (length <= 16) {
 				uint64_t hashValue = seed;
 				for (uint64_t x = 0; x < length; ++x) {
@@ -357,7 +350,7 @@ namespace jsonifier_internal {
 			}
 		}
 
-		constexpr uint64_t hashKeyCt(const char* value, uint64_t length, uint64_t stringLength) const {
+		constexpr uint64_t hashKeyCt(const char* value, uint64_t length) const {
 			if (length <= 16) {
 				uint64_t hashValue = seed;
 				for (uint64_t x = 0; x < length; ++x) {

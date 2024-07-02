@@ -159,7 +159,8 @@ namespace jsonifier_internal {
 	constexpr set_construction_values collectOptimalConstructionValues(construction_values_array<dimension1, dimension2, dimension3> indexTable) {
 		set_construction_values returnValues{};
 		for (size_t x = 0; x < indexTable.size(); ++x) {
-			if (indexTable[x].success && (returnValues.stringLength > indexTable[x].stringLength) || returnValues.maxSizeIndex > indexTable[x].maxSizeIndex) {
+			if (indexTable[x].success && (returnValues.stringLength > indexTable[x].stringLength) ||
+				(returnValues.stringLength >= indexTable[x].stringLength && returnValues.maxSizeIndex > indexTable[x].maxSizeIndex)) {
 				returnValues = indexTable[x];
 			}
 		}
@@ -185,26 +186,23 @@ namespace jsonifier_internal {
 
 	constexpr size_t simdHashSetMaxSizes[]{ 16, 32, 64, 128, 256, 512, 1024 };
 
-	template<typename key_type, typename value_type, size_t actualCount, size_t storageSize> struct simd_hash_set {
+	template<typename key_type, typename value_type, size_t actualCount, size_t storageSize> struct simd_hash_set : public key_hasher {
 		static constexpr size_t bucketSize = setSimdWidth<actualCount>();
 		static constexpr size_t numGroups  = storageSize > bucketSize ? storageSize / bucketSize : 1;
 		using simd_type					   = set_simd_t<bucketSize>;
 		using integer_type				   = set_integer_t<bucketSize>;
-		JSONIFIER_ALIGN std::array<std::pair<jsonifier::string_view, value_type>, storageSize> items{};
-		JSONIFIER_ALIGN std::array<size_t, storageSize> hashes{ { static_cast<uint64_t>(-1) } };
-		JSONIFIER_ALIGN std::array<uint8_t, storageSize> controlBytes{};
+		JSONIFIER_ALIGN std::pair<jsonifier::string_view, value_type> items[storageSize]{};
+		JSONIFIER_ALIGN uint8_t controlBytes[storageSize]{};
 		JSONIFIER_ALIGN uint64_t stringLength{};
-		JSONIFIER_ALIGN uint64_t mixCount{};
-		JSONIFIER_ALIGN key_hasher hasher{};
 
 		constexpr simd_hash_set() noexcept = default;
 
 		JSONIFIER_INLINE constexpr decltype(auto) begin() const noexcept {
-			return &items.data()->second;
+			return &items->second;
 		}
 
 		JSONIFIER_INLINE constexpr decltype(auto) end() const noexcept {
-			return &(items.data() + storageSize)->second;
+			return &(items + storageSize)->second;
 		}
 
 		JSONIFIER_INLINE constexpr auto size() const noexcept {
@@ -213,17 +211,17 @@ namespace jsonifier_internal {
 
 		template<typename key_type_new> JSONIFIER_INLINE constexpr decltype(auto) find(key_type_new&& key) const noexcept {
 			if (!std::is_constant_evaluated()) {
-				JSONIFIER_ALIGN const auto hash = hasher.hashKeyRt(key.data(), stringLength, mixCount);
-				size_t group					= H1(hash) % numGroups;
-				auto matchVal					= match(H2(hash), controlBytes.data() + group * bucketSize);
-				auto finalIndex					= ((group * bucketSize) + matchVal) % storageSize;
-				return compareSvNonConst(items[finalIndex].first, key) ? &items[finalIndex].second : end();
+				JSONIFIER_ALIGN const auto hash = key_hasher::hashKeyRt(key.data(), stringLength);
+				JSONIFIER_ALIGN size_t group	= (hash >> 8) % numGroups;
+				JSONIFIER_ALIGN auto matchVal	= match(static_cast<uint8_t>(hash), controlBytes + group * bucketSize);
+				JSONIFIER_ALIGN auto finalIndex = ((group * bucketSize) + matchVal) % storageSize;
+				return compareSvNonConst((items + finalIndex)->first, key) ? &(items + finalIndex)->second : end();
 			} else {
-				JSONIFIER_ALIGN const auto hash = hasher.hashKeyCt(key.data(), stringLength, mixCount);
-				size_t group					= H1(hash) % numGroups;
-				auto matchVal					= constMatch(H2(hash), controlBytes.data() + group * bucketSize);
-				auto finalIndex					= ((group * bucketSize) + matchVal) % storageSize;
-				return compareSvConst(items[finalIndex].first, key) ? &items[finalIndex].second : end();
+				JSONIFIER_ALIGN const auto hash = key_hasher::hashKeyCt(key.data(), stringLength);
+				JSONIFIER_ALIGN size_t group	= (hash >> 8) % numGroups;
+				JSONIFIER_ALIGN auto matchVal	= constMatch(static_cast<uint8_t>(hash), controlBytes + group * bucketSize);
+				JSONIFIER_ALIGN auto finalIndex = ((group * bucketSize) + matchVal) % storageSize;
+				return compareSvConst((items + finalIndex)->first, key) ? &(items + finalIndex)->second : end();
 			}
 		}
 
@@ -238,9 +236,7 @@ namespace jsonifier_internal {
 		}
 
 		uint32_t match(uint8_t hash, const uint8_t* ctrl) const {
-			auto match01 = simd_internal::gatherValues<simd_type>(ctrl);
-			auto match02 = simd_internal::gatherValue<simd_type>(hash);
-			return simd_internal::tzcnt(simd_internal::opCmpEq(match01, match02));
+			return simd_internal::tzcnt(simd_internal::opCmpEq(simd_internal::gatherValues<simd_type>(ctrl), simd_internal::gatherValue<simd_type>(hash)));
 		}
 
 		constexpr integer_type constMatch(uint8_t hash, const uint8_t* hashData) const {
@@ -267,20 +263,18 @@ namespace jsonifier_internal {
 		constexpr size_t numGroups	= storageSize >= bucketSize ? storageSize / bucketSize : 1;
 		size_t storageSizeNew{ storageSize };
 		simd_hash_set<key_type, value_type, actualCount, storageSize> simdHashSetNew{};
-		simdHashSetNew.hasher		= constructioinValues.seed;
+		simdHashSetNew.setSeed(constructioinValues.seed);
 		simdHashSetNew.stringLength = constructioinValues.stringLength;
-		simdHashSetNew.mixCount		= constructioinValues.mixCount;
 		std::array<size_t, numGroups> bucketSizes{};
 		for (size_t x = 0; x < actualCount; ++x) {
-			const auto hash					  = simdHashSetNew.hasher.hashKeyCt(pairsNew[x].first.data(),
-				  constructioinValues.stringLength > pairsNew[x].first.size() ? pairsNew[x].first.size() : constructioinValues.stringLength, constructioinValues.mixCount);
+			const auto hash					  = simdHashSetNew.hashKeyCt(pairsNew[x].first.data(),
+				  constructioinValues.stringLength > pairsNew[x].first.size() ? pairsNew[x].first.size() : constructioinValues.stringLength);
 			const auto groupPos				  = H1(hash) % numGroups;
 			const auto ctrlByte				  = H2(hash);
 			const auto bucketSizeNew		  = bucketSizes[groupPos]++;
 			const auto slot					  = ((groupPos * bucketSize) + bucketSizeNew) % storageSize;
 			simdHashSetNew.items[slot]		  = pairsNew[x];
 			simdHashSetNew.controlBytes[slot] = ctrlByte;
-			simdHashSetNew.hashes[slot]		  = hash;
 		}
 
 		return set_variant<16, actualCount, key_type, value_type, simd_hash_set>{ simd_hash_set<key_type, value_type, actualCount, storageSize>(simdHashSetNew) };
@@ -313,7 +307,7 @@ namespace jsonifier_internal {
 		key_hasher hasherNew{ seed };
 		for (size_t x = 0; x < actualCount; ++x) {
 			const auto hash			 = hasherNew.hashKeyCt(pairsNew[x].first.data(),
-				 constructionValuesNew.stringLength > pairsNew[x].first.size() ? pairsNew[x].first.size() : constructionValuesNew.stringLength, constructionValuesNew.mixCount);
+				 constructionValuesNew.stringLength > pairsNew[x].first.size() ? pairsNew[x].first.size() : constructionValuesNew.stringLength);
 			const auto groupPos		 = H1(hash) % numGroups;
 			const auto ctrlByte		 = H2(hash);
 			const auto bucketSizeNew = ++bucketSizes[groupPos];
@@ -383,53 +377,53 @@ namespace jsonifier_internal {
 	}
 
 	template<typename value_type, const jsonifier::string_view& S> struct micro_set1 {
-		std::array<value_type, 1> items{};
+		std::pair<jsonifier::string_view, value_type> items[1]{};
 
 		JSONIFIER_INLINE constexpr decltype(auto) begin() const noexcept {
-			return items.begin();
+			return &items->second;
 		}
 
 		JSONIFIER_INLINE constexpr decltype(auto) end() const noexcept {
-			return items.end();
+			return &(items + 1)->second;
 		}
 
 		template<typename key_type> JSONIFIER_INLINE constexpr decltype(auto) find(key_type&& key) const noexcept {
 			if (compareSv<S>(key)) [[likely]] {
-				return items.begin();
+				return begin();
 			} else [[unlikely]] {
-				return items.end();
+				return end();
 			}
 		}
 	};
 
 	template<typename value_type, const jsonifier::string_view& S0, const jsonifier::string_view& S1> struct micro_set2 {
-		std::array<value_type, 2> items{};
+		std::pair<jsonifier::string_view, value_type> items[2]{};
 
 		static constexpr bool sameSize	 = S0.size() == S1.size();
 		static constexpr bool checkSize = !sameSize;
 
 		JSONIFIER_INLINE constexpr decltype(auto) begin() const noexcept {
-			return items.begin();
+			return &items->second;
 		}
 
 		JSONIFIER_INLINE constexpr decltype(auto) end() const noexcept {
-			return items.end();
+			return &(items + 2)->second;
 		}
 
 		template<typename key_type> JSONIFIER_INLINE constexpr decltype(auto) find(key_type&& key) const noexcept {
 			if constexpr (sameSize) {
 				constexpr auto n = S0.size();
 				if (key.size() != n) {
-					return items.end();
+					return end();
 				}
 			}
 
 			if (cxStringCmp<S0, checkSize>(key)) {
-				return items.begin();
+				return begin();
 			} else if (cxStringCmp<S1, checkSize>(key)) {
-				return items.begin() + 1;
+				return begin() + 1;
 			} else [[unlikely]] {
-				return items.end();
+				return end();
 			}
 		}
 	};
@@ -496,11 +490,11 @@ namespace jsonifier_internal {
 		if constexpr (n == 0) {
 			return nullptr;
 		} else if constexpr (n == 1) {
-			return micro_set1<value_t, core_sv<value_type, I>::value...>{ getValue<value_type, I>()... };
+			return micro_set1<value_t, core_sv<value_type, I>::value...>{ keyValue<value_type, I>()... };
 		} else if constexpr (n == 2) {
-			return micro_set2<value_t, core_sv<value_type, I>::value...>{ getValue<value_type, I>()... };
+			return micro_set2<value_t, core_sv<value_type, I>::value...>{ keyValue<value_type, I>()... };
 		} else {
-			constexpr auto constructionVals = set_construction_values::constructConstructionValues(keyStatsVal.minLength, keyStatsVal.maxLength);
+			constexpr auto constructionVals = set_construction_values::constructConstructionValues(keyStatsVal.minLength / 2, keyStatsVal.maxLength);
 			constexpr auto setNew{ constructSimdHashSet<constructionVals, jsonifier::string_view, value_t, n>({ keyValue<value_type, I>()... }) };
 			constexpr auto newIndex = setNew.index();
 			return std::get<newIndex>(setNew);

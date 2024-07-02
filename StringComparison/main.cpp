@@ -886,29 +886,25 @@ int main() {
 	constexpr auto jsonifierMapNew02{ jsonifier_internal::makeSet<large_data>() };
 	constexpr auto glazeMapNew02{ glz::detail::make_map<large_data>() };
 	std::cout << "CURRENT STRING LENGTH: " << jsonifierMapNew02.stringLength << std::endl;
-	std::cout << "CURRENT MIX COUNT: " << jsonifierMapNew02.mixCount << std::endl;
 
 	constexpr auto jsonifierMapNew03{ jsonifier_internal::makeSet<url_data>() };
 	constexpr auto glazeMapNew03{ glz::detail::make_map<url_data>() };
 	std::cout << "CURRENT STRING LENGTH: " << jsonifierMapNew03.stringLength << std::endl;
-	std::cout << "CURRENT MIX COUNT: " << jsonifierMapNew03.mixCount << std::endl;
 
 	constexpr auto jsonifierMapNew04{ jsonifier_internal::makeSet<user_mention>() };
 	constexpr auto glazeMapNew04{ glz::detail::make_map<user_mention>() };
 	std::cout << "CURRENT STRING LENGTH: " << jsonifierMapNew04.stringLength << std::endl;
-	std::cout << "CURRENT MIX COUNT: " << jsonifierMapNew04.mixCount << std::endl;
 
 	
 	constexpr auto jsonifierMapNew05{ jsonifier_internal::makeSet<status_entities>() };
 	constexpr auto glazeMapNew05{ glz::detail::make_map<status_entities>() };
 	std::cout << "CURRENT STRING LENGTH: " << jsonifierMapNew05.stringLength << std::endl;
-	std::cout << "CURRENT MIX COUNT: " << jsonifierMapNew05.mixCount << std::endl;
-	/*
+
 	constexpr auto jsonifierMapNew06{ jsonifier_internal::makeSet<media_data>() };
 	constexpr auto glazeMapNew06{ glz::detail::make_map<media_data>() };
-	std::cout << "CURRENT STRING LENGTH: " << jsonifierMapNew02.stringLength << std::endl;
-	std::cout << "CURRENT MIX COUNT: " << jsonifierMapNew02.mixCount << std::endl;
+	std::cout << "CURRENT STRING LENGTH: " << jsonifierMapNew06.stringLength << std::endl;
 
+	
 	constexpr auto jsonifierMapNew07{ jsonifier_internal::makeSet<search_metadata_data>() };
 	constexpr auto glazeMapNew07{ glz::detail::make_map<search_metadata_data>() };
 	std::cout << "CURRENT STRING LENGTH: " << jsonifierMapNew07.stringLength << std::endl;
@@ -916,7 +912,8 @@ int main() {
 	constexpr auto jsonifierMapNew08{ jsonifier_internal::makeSet<member_data>() };
 	constexpr auto glazeMapNew08{ glz::detail::make_map<member_data>() };
 	std::cout << "CURRENT STRING LENGTH: " << jsonifierMapNew08.stringLength << std::endl;
-
+	
+	
 	constexpr auto jsonifierMapNew09{ jsonifier_internal::makeSet<user_data>() };
 	constexpr auto glazeMapNew09{ glz::detail::make_map<user_data>() };
 	std::cout << "CURRENT STRING LENGTH: " << jsonifierMapNew09.stringLength << std::endl;
@@ -928,12 +925,16 @@ int main() {
 	constexpr auto jsonifierMapNew11{ jsonifier_internal::makeSet<channel_data>() };
 	constexpr auto glazeMapNew11{ glz::detail::make_map<channel_data>() };
 	std::cout << "CURRENT STRING LENGTH: " << jsonifierMapNew11.stringLength << std::endl;
-	*/
+
 	bnch_swt::benchmark_suite<"Find Test">::benchmark<"frozenMap<description_data>", "glaze", "skyblue", 2000>([&] {
 		for (uint64_t x = 0; x < 1024; ++x) {
 			for (uint64_t y = 0; y < std::size(arrayNew00); ++y) {
-				auto newString = *glazeMapNew00.find(arrayNew00[y].first);
-				bnch_swt::doNotOptimizeAway(newString);
+				if (auto newString = glazeMapNew00.find(arrayNew00[y].first); newString == glazeMapNew00.end()) {
+					std::cout << "NOT FOUND NOT FOUND!" << std::endl;
+					bnch_swt::doNotOptimizeAway(newString);
+				} else {
+					bnch_swt::doNotOptimizeAway(newString);
+				}
 			}
 		}
 		return;
@@ -942,8 +943,12 @@ int main() {
 	bnch_swt::benchmark_suite<"Find Test">::benchmark<"frozenMap<description_data>", "jsonifier", "steelblue", 2000>([&] {
 		for (uint64_t x = 0; x < 1024; ++x) {
 			for (uint64_t y = 0; y < std::size(arrayNew00); ++y) {
-				auto newString = *jsonifierMapNew00.find(arrayNew00[y].first);
-				bnch_swt::doNotOptimizeAway(newString);
+				if (auto newString = jsonifierMapNew00.find(arrayNew00[y].first); newString == jsonifierMapNew00.end()) {
+					std::cout << "NOT FOUND NOT FOUND!" << std::endl;
+					bnch_swt::doNotOptimizeAway(newString);
+				} else {
+					bnch_swt::doNotOptimizeAway(newString);
+				}
 			}
 		}
 		return;
@@ -1048,7 +1053,6 @@ int main() {
 		}
 		return;
 	});
-	/*
 	bnch_swt::benchmark_suite<"Find Test">::benchmark<"frozenMap<media_data>", "glaze", "skyblue", 2000>([&] {
 		for (uint64_t x = 0; x < 1024; ++x) {
 			for (uint64_t y = 0; y < std::size(arrayNew06); ++y) {
@@ -1069,6 +1073,7 @@ int main() {
 		return;
 	});
 
+	
 	bnch_swt::benchmark_suite<"Find Test">::benchmark<"frozenMap<search_metadata_data>", "glaze", "skyblue", 2000>([&] {
 		for (uint64_t x = 0; x < 1024; ++x) {
 			for (uint64_t y = 0; y < std::size(arrayNew07); ++y) {
@@ -1108,7 +1113,8 @@ int main() {
 		}
 		return;
 	});
-
+	
+	
 	bnch_swt::benchmark_suite<"Find Test">::benchmark<"frozenMap<user_data>", "glaze", "skyblue", 2000>([&] {
 		for (uint64_t x = 0; x < 1024; ++x) {
 			for (uint64_t y = 0; y < std::size(arrayNew09); ++y) {
@@ -1168,7 +1174,6 @@ int main() {
 		}
 		return;
 	});
-	*/
 	bnch_swt::benchmark_suite<"Find Test">::writeJsonData("../../../../FrozenMapTest.json");
 	bnch_swt::benchmark_suite<"Find Test">::printResults();
 	bnch_swt::benchmark_suite<"Hash Test">::printResults();
